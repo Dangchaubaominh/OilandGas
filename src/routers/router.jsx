@@ -12,7 +12,7 @@ import Settings from "../Pages/Management/Settings";
 import WarehouseInventory from "../Pages/Management/WarehouseInventory";
 import Simulator from "../Pages/Management/Simulator";
 import EquipmentControl from "../Pages/Management/EquipmentControl";
-import Login from "../Pages/Auth/login";
+import Login from "../Pages/Auth/Login";
 
 // ... Import thêm các trang khác khi cần
 
