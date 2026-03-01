@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute from "./PrivateRoute";
-import MainLayout from "../Layouts/MainLayouts";
+import MainLayout from "../layouts/MainLayouts";
 import Dashboard from "../Pages/Management/DashBoard";
 import UserManagement from "../Pages/Management/UserManagement";
 import RoleManagement from "../Pages/Management/RoleManagement";
