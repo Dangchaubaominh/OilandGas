@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Check MockAPI Users</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Arial; 
+      padding: 30px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.95);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      color: #1e293b;
+    }
+    h1 { color: #667eea; margin-bottom: 10px; }
+    .subtitle { color: #64748b; margin-bottom: 30px; }
+    button { 
+      padding: 12px 24px; 
+      margin: 8px; 
+      cursor: pointer; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+      border: none; 
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    button:active { transform: translateY(0); }
+    pre { 
+      background: #0f172a; 
+      color: #e2e8f0;
+      padding: 20px; 
+      border-radius: 8px; 
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .error { 
+      background: #fee2e2; 
+      color: #991b1b; 
+      padding: 16px; 
+      border-radius: 8px;
+      border-left: 4px solid #dc2626;
+      margin: 16px 0;
+    }
+    .success { 
+      background: #d1fae5; 
+      color: #065f46; 
+      padding: 16px; 
+      border-radius: 8px;
+      border-left: 4px solid #10b981;
+      margin: 16px 0;
+    }
+    .warning {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid #f59e0b;
+      margin: 16px 0;
+    }
+    .info-box {
+      background: #e0e7ff;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border-left: 4px solid #667eea;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      background: #667eea;
+      color: white;
+      font-weight: 600;
+    }
+    tr:hover {
+      background: #f8fafc;
+    }
+    .btn-delete {
+      background: #ef4444;
+      padding: 6px 12px;
+      font-size: 13px;
+      margin: 0;
+    }
+    .btn-delete:hover {
+      background: #dc2626;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(102, 126, 234, 0.3);
+      border-radius: 50%;
+      border-top-color: #667eea;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 MockAPI Users Inspector</h1>
+    <p class="subtitle">Check what users actually exist on your MockAPI</p>
+    
+    <div>
+      <button onclick="checkUsers()">🔄 Refresh Users List</button>
+      <button onclick="checkUserById()">🔎 Check Specific User ID</button>
+      <button onclick="deleteAllUsers()">🗑️ Delete All Users</button>
+    </div>
+    
+    <div id="output" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://6724944e493fac3cf24eae5c.mockapi.io/Users';
+    const output = document.getElementById('output');
+
+    async function checkUsers() {
+      output.innerHTML = '<div class="loading"></div> <span style="color: #667eea;">Fetching users from MockAPI...</span>';
+      
+      try {
+        const response = await fetch(API_URL);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.length === 0) {
+          output.innerHTML = `
+            <div class="warning">
+              <h3>⚠️ No Users Found!</h3>
+              <p>Your MockAPI <strong>Users</strong> resource is empty.</p>
+              <p><strong>Solution:</strong> Create users using the "Create New User" button in your app.</p>
+            </div>
+            <div class="info-box">
+              <p><strong>API Endpoint:</strong> <code>${API_URL}</code></p>
+              <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+            </div>
+          `;
+          return;
+        }
+        
+        console.log('Fetched users:', data);
+        
+        // Build table
+        let tableHTML = `
+          <div class="success">
+            <strong>✅ Found ${data.length} user(s) on MockAPI!</strong>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>ID Type</th>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        data.forEach(user => {
+          const userId = user.id || user.ID;
+          const idType = typeof userId;
+          tableHTML += `
+            <tr>
+              <td><strong>${userId}</strong></td>
+              <td><code>${idType}</code></td>
+              <td>${user.username || '-'}</td>
+              <td>${user.fullName || '-'}</td>
+              <td>${user.email || '-'}</td>
+              <td>${user.role || '-'}</td>
+              <td>${user.status || '-'}</td>
+              <td>
+                <button class="btn-delete" onclick="deleteSingleUser('${userId}', '${user.fullName || user.username}')">
+                  Delete
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+        
+        tableHTML += `
+            </tbody>
+          </table>
+          <div class="info-box">
+            <h4>💡 Debug Info:</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          </div>
+        `;
+        
+        output.innerHTML = tableHTML;
+        
+      } catch (error) {
+        output.innerHTML = `
+          <div class="error">
+            <h3>❌ Error Fetching Users</h3>
+            <p><strong>Error:</strong> ${error.message}</p>
+            <p><strong>API URL:</strong> ${API_URL}</p>
+            <p><strong>Possible causes:</strong></p>
+            <ul>
+              <li>Network connection issue</li>
+              <li>MockAPI project doesn't exist</li>
+              <li>CORS issue (unlikely with MockAPI)</li>
+            </ul>
+          </div>
+        `;
+        console.error('Error:', error);
+      }
+    }
+
+    async function checkUserById() {
+      const userId = prompt("Enter User ID to check:", "1");
+      if (!userId) return;
+
+      output.innerHTML = `<div class="loading"></div> Checking user ID: <strong>${userId}</strong>...`;
+      
+      try {
+        const response = await fetch(`${API_URL}/${userId}`);
+        
+        if (response.status === 404) {
+          output.innerHTML = `
+            <div class="error">
+              <h3>❌ 404 Not Found</h3>
+              <p>User ID <strong>"${userId}"</strong> does not exist on MockAPI.</p>
+              <p><strong>URL tested:</strong> <code>${API_URL}/${userId}</code></p>
+              <p><strong>Solution:</strong> Click "Refresh Users List" to see available IDs.</p>
+            </div>
+          `;
+          return;
+        }
+        
+        const data = await response.json();
+        
+        output.innerHTML = `
+          <div class="success">
+            <h3>✅ User Found!</h3>
+            <p><strong>ID:</strong> ${data.id || data.ID} <em>(${typeof (data.id || data.ID)})</em></p>
+          </div>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+        
+      } catch (error) {
+        output.innerHTML = `
+          <div class="error">
+            <h3>❌ Error</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    async function deleteSingleUser(userId, userName) {
+      if (!confirm(`Delete user "${userName}" (ID: ${userId})?`)) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/${userId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          alert(`✅ User "${userName}" deleted successfully!`);
+          checkUsers(); // Refresh list
+        } else {
+          alert(`❌ Failed to delete: ${response.status} ${response.statusText}`);
+        }
+      } catch (error) {
+        alert(`❌ Error: ${error.message}`);
+      }
+    }
+
+    async function deleteAllUsers() {
+      if (!confirm('⚠️ WARNING: This will delete ALL users from MockAPI!\n\nAre you sure?')) return;
+      if (!confirm('Really sure? This cannot be undone!')) return;
+      
+      output.innerHTML = '<div class="loading"></div> Deleting all users...';
+      
+      try {
+        const response = await fetch(API_URL);
+        const users = await response.json();
+        
+        let deleted = 0;
+        for (const user of users) {
+          const userId = user.id || user.ID;
+          try {
+            await fetch(`${API_URL}/${userId}`, { method: 'DELETE' });
+            deleted++;
+          } catch (e) {
+            console.error(`Failed to delete user ${userId}:`, e);
+          }
+        }
+        
+        output.innerHTML = `
+          <div class="success">
+            <h3>✅ Deleted ${deleted} user(s)</h3>
+          </div>
+        `;
+        
+        setTimeout(checkUsers, 1000);
+        
+      } catch (error) {
+        output.innerHTML = `
+          <div class="error">
+            <h3>❌ Error</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // Auto-run on load
+    checkUsers();
+  </script>
+</body>
+</html>

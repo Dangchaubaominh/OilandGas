@@ -1,0 +1,846 @@
+ 
+
+
+
+
+
+
+
+
+Oil & Gas Management 
+Software Requirement Specification
+Version: 1.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+HCM, Mar 2025 
+Approval Page
+
+Prepared by : 	 
+Business Analyst	Signature:	
+____________________
+		Date:	
+____ /____  / ____
+			
+			
+Reviewed by : 	
+Business Analyst	Signature:	
+____________________
+		Date:	
+____ /____  / ____
+			
+Supported by:	 
+	Signature:	
+____________________
+		Date:	
+____ /____  / ____
+			
+			
+Approved by : 	 
+	Signature:	
+____________________
+		Date:	
+____ /____  / ____
+
+ 
+Revision History
+Date	Version	Author	Change Description
+04/03/2025	1.0		Create new
+			
+			
+			
+			
+			
+
+
+ 
+TABLE OF CONTENTS
+
+1.	Introduction	5
+1.1	Purpose	5
+1.2	Scope of Project	5
+2.	Overall Description	5
+2.1	Actor	5
+2.2	Use case diagram of the system	6
+3.	Functional Requirements	7
+4.	Other Requirements	7
+5.	Integration	7
+6.	Non-functional Requirement	7
+6.1	Reliability	7
+6.2	Scalability	7
+6.3	Supportability	7
+6.4	Availability	8
+6.5	Performance	8
+6.6	Security & Privacy	8
+6.7	Compatibility	8
+6.8	Maintainability	8
+
+ 
+1.	Introduction
+1.1	Purpose
+The purpose of this Software Requirements Specification (SRS) document is to outline the functional and non-functional requirements for the Oil & Gas Management System. This document aims to provide a comprehensive and detailed description of the system's capabilities, features, and constraints to ensure that the development team, stakeholders, and end-users have a clear understanding of the system's objectives and functionalities.
+1.2	Scope of Project
+The scope of the Oil & Gas Management System project encompasses the development, implementation, and maintenance of a comprehensive software solution designed to manage and optimize the operation of assets, equipment, and drilling rigs in oil and gas exploration and production.
+2.	Overall Description
+2.1	Actor
+The table below describes all the actors involved in the Oil and Gas Management System. Each actor has a distinct role within the system, with access controlled by role-based privileges. The system supports role customization to meet operational and security requirements. The defined roles include Administrator, Field Supervisor, Supplier Manager, Field Operator and Engineer, each with specific access rights to ensure efficient and secure system usage.
+Actor	Description
+Administrator	Has full access to all modules and services. Can add, update, and delete users, roles, assets, and system configurations across the entire platform.
+Field Supervisor	Has rights to access, add, update, and delete field data. Can manage shift schedules, equipment status, and operational logs in the Field Operations module.
+Engineer	Has rights to access, analyse, and update technical data related to wells, maintenance, pipelines, and equipment. Can generate reports and recommend operational changes but cannot modify user roles or system settings.
+
+2.2	Use case diagram of the system
+ 
+
+
+Figure 1: Use case Diagram
+
+2.3	Configurations List
+Configuration name	Description	Default value
+Lockout Policy	This security feature activates when a user enters an incorrect password multiple times. It temporarily locks the account to prevent unauthorized access.	5 times
+Data Sync	Controls the frequency at which field devices (e.g., sensors, SCADA units) synchronize with the central system for monitoring and analysis.	1 week
+Session Timeout	Specifies the duration a user session stays active before automatic logout due to inactivity, maintaining system security.	15 minutes
+Password Policy	Enforces password standards including minimum length, complexity, and expiration cycles to ensure secure user authentication.	Minimum Length: 8–12 characters (stronger security recommends 12+)
+Complexity Requirements: Must include uppercase & lowercase letters, numbers.
+Expired Password	Ensures security by requiring users to update their passwords regularly	90 days
+Automatic Deactivation	Disables user accounts that remain inactive beyond a specified time frame to prevent unauthorized access.	30 days
+Incident Alert Threshold	Defines the conditions that trigger automatic alerts, such as pressure anomalies, equipment failures, or environmental breaches.	Pressure > 120 psi / Temp > 90°C
+2.4	Privileges List
+This list defines various user privileges aligned with role-based access control (RBAC), ensuring secure and appropriate access to system functionalities.
+Name	Description	Roles with Privilege	Notes
+View Asset Records	View detailed information of assets, including status, location, and maintenance history.	Engineer, Field Supervisor, Administrator	Read-only access to asset data.
+Edit Asset Records	Create, update, or delete asset details.	Field Supervisor, Administrator	Restricted to authorized personnel.
+View Real-Time Sensor Data	Access live status data from sensors and environmental monitoring devices.	Engineer, Field Supervisor	Critical for operational monitoring.
+Acknowledge Alerts	Mark alerts or fault notifications as acknowledged.	Engineer	Used to confirm alert.
+Respond to Incidents	Initiate incident response protocols, including activating safety procedures.	Field Supervisor	Enforces safety measures.
+View/Generate Reports	Access system reports, KPI dashboards, and analytics.	Field Supervisor, Administrator	For strategic decision-making.
+Configure Sensors/Devices	Set up or modify sensor configurations and environmental thresholds.	Administrator	System setup and calibration
+Manage User Access	Create, modify, or revoke user roles and privileges.	Administrator	Ensures security and proper access control.
+System Configuration & Settings	Adjust system parameters, integrations, and other configurations.	Administrator	System maintenance and customization.
+Access Simulation Module	Use simulation tools for training and operational analysis.	Field Supervisor, Administrator	Restricted access based on roles.
+Data Backup & Recovery	Initiate system backups, restores, and disaster recovery procedures.	IT Administrator	Ensures data integrity.
+
+
+3.	Functional Requirements
+The functional requirements are grouped by service.
+3.1	Identity and Access Management Service
+
+3.1.1	Users Management
+ 
+3.1.1.1	Create User (Register) 
+3.1.1.1.1	Feature Requirements 
+
+
+Input 	User can create new user by click into “Create new user” or “Register” button then input information into blank form with these required information: 
+•	Full name 
+•	Email address 
+•	Password 
+•	Phone Number
+Output 	- Confirmation message 
+- User ID 
+Actor 	Administrator, Supervisor
+Alternative Flow 	If email is already registered, system returns error message indicating duplication 
+Log 	- User creation timestamp 
+- Created by (admin ID) 
+- User email 
+- Role assigned 
+Acceptance Criteria 	The system must validate all required fields before processing the request: 
+•	Email must be in a unique and in valid format 
+•	Phone number must be in a valid phone number format 
+•	Password must be in meet strength requirements 
+After validation all requirement, system process next step: 
+•	If all fields pass validation, a new record is inserted into the database. 
+•	If validation fails, the system returns an error message specific to each invalid field. 
+3.1.1.2	Update User.
+3.1.1.2.1	Feature Requirements
+
+Input 	User can update user information when click “Update User information” button with this required information:  
+•	Phone number 
+•	Email
+•	Password
+Output 	Update confirmation message 
+Actor 	Administrator, Supervisor, Engineer
+Alternative Flow 	If user ID does not exist, system returns "user not found" error 
+Log 	- Updated timestamp 
+- Fields changed 
+- Admin ID 
+Acceptance Criteria 	The system must validate all required fields before processing the request: 
+•	Date of birth must be in a valid format (MM/DD/YYY). 
+•	User must be found in the system 
+After validation all requirement, system process next step: 
+•	If all fields pass validation, a change record is updated into the database. 
+•	If validation fails, the system returns an error message specific to each invalid field 
+3.1.1.3	Get List User.
+3.1.1.3.1	Feature Requirements
+
+ Input 	  - Optional filters: role, status 
+  - Pagination parameters: page, limit 
+ Output 	  List of users with metadata (ID, name, email, role, status)
+ Actor 	  Administrator 
+ Alternative Flow 	  If no users match filters, system returns empty list with message "no data" 
+ Log 	  N/A 
+ Acceptance Criteria 	  - User list is fetched correctly 
+  - Pagination and filtering are applied accurately 
+  - Total count reflects filtered results 
+  - User list is sorted by full name 
+3.1.1.4	Delete User.
+3.1.1.4.1	Feature Requirements
+
+ Input 	  - User ID to delete
+ Output 	  Deletion confirmation message 
+ Actor 	  Administrator 
+ Alternative Flow 	  - If user ID does not exist, system returns error message 
+  - If user is already deleted or disabled, system returns warning 
+ Log 	  - Deleted user ID 
+  - Timestamp 
+  - Admin ID 
+  - Reason (if provided) 
+ Acceptance Criteria 	  - Only admin can delete
+  - Deleted users must be soft-deleted or anonymized
+
+3.1.1.5	View User Information.
+3.1.1.5.1	Feature Requirements
+
+ Input 	 User ID 
+ Output 	 User profile information: name, email, phone, department, role, status, creation date 
+ Actor 	 Administrator, Supervisor and Engineer
+ Alternative Flow 	 If user does not exist, system returns "user not found" message 
+ Log 	 N/A 
+ Acceptance Criteria 	- Users can only view their own info unless they are Admin 
+- All info must match data stored in DB
+
+
+
+
+3.1.1.6	Change Password.
+3.1.1.6.1	Feature Requirements
+
+ Input 	 - Current password 
+ - New password 
+ - Confirm new password 
+ Output 	 Password change confirmation message 
+ Actor 	 Administrator, Supervisor, Engineer
+ Alternative Flow 	 - If current password is incorrect, system returns "incorrect current password" 
+ - If new passwords don't match, return validation error 
+ Log 	 - Change timestamp 
+ - User ID 
+ Acceptance Criteria 	 - Password must be changed only if current password is validated 
+ - The new password must be in a valid password format 
+ - If validation fails, the system returns an error message specific to each invalid field. (old password is wrong or new password is not in validation) 
+ - Confirmation is shown on success 
+
+3.1.1.7	Login.
+3.1.1.7.1	Feature Requirements
+
+ Input 	- username or email  
+- password 
+ Output 	- authentication_token (JWT) 
+- login_status 
+- user_role 
+ Actor 	 Admin, Supervisor, Engineer  
+
+ Alternative Flow 	 If the username or password is incorrect, the system will display a validation error message indicating failed login credentials. 
+ Log 	 - Timestamp of login attempt  
+ - User identifier (email/username)  
+ - Login outcome (success/failure)  
+ - Reason for failure (e.g., wrong password, account locked, inactive account)  
+ - JWT token issued (reference only) 
+ Acceptance Criteria 	 - Invalid Credentials: If the provided username/email or password is incorrect, the system denies access and returns an error message ("Invalid username or password").  
+ - Account Locked: After five consecutive failed attempts, the system temporarily locks the account (15 minutes), returning "Account locked due to multiple failed attempts."  
+ - Inactive/Disabled Account: The system blocks login and advises contacting an administrator. 
+
+3.1.1.8	Forget Password.
+3.1.1.8.1	Feature Requirements
+ Input 	 Email address 
+ Output 	 Email with password reset instructions (tokenized reset link) 
+ Actor 	 Administrator, Staff and Customer 
+ Alternative Flow 	 If email is not found, return generic success message (e.g., “If the email is registered, instructions have been sent”) to prevent user enumeration 
+ Log 	 - Request timestamp 
+ - Email used 
+ Acceptance Criteria 	 - System must generate a secure, time-bound reset token 
+ - Reset link must be emailed if user exists 
+ - Process must not expose user status or email existence 
+
+3.1.2	Roles Management
+Roles are assigned by admin and there are only 3 roles: Admin, Supervisor, Engineer. Admin can create new role and grant permission for that role
+
+
+Figure 3: Roles Management use case diagram
+
+3.1.2.1	Create Role
+3.1.2.1.1	Feature Requirements 
+ Input 	 Admin can create a new role with these required information: 
+•	Role name 
+•	Role permissions (list of features/modules) 
+•	Role description (optional) 
+ Output 	 - Role creation confirmation 
+ - Role ID 
+ Actor 	 Administrator 
+ Alternative Flow 	 If role name already exists, system returns duplication error 
+ Log 	 - Creation timestamp 
+ - Role name 
+ - Admin ID 
+ Acceptance Criteria 	 The system must validate all required fields before processing the request 
+•	Role code must not exist in system before 
+After validate all information: 
+•	If all fields pass validation, a new record is inserted into the database. Role appears in the list of roles after creation 
+•	If validation fails, the system returns an error message specific to each invalid field 
+
+3.1.2.2	Update Role
+3.1.2.2.1	Feature Requirements
+ Input 	 User can update a role with these required information: 
+•	Role name 
+•	Role description 
+•	Role permissions 
+ Output 	 Role update confirmation 
+ Actor 	 Administrator 
+ Alternative Flow 	 - If role ID does not exist, system returns "role not found" 
+ - If role is assigned to users, editing certain permissions may be restricted 
+ Log 	 - Updated timestamp 
+ - Role ID 
+ - Admin ID 
+ - Changes applied 
+ Acceptance Criteria 	 The system must validate all required fields before processing the request. 
+•	If all fields pass validation, update record. 
+•	If validation fails, the system returns an error message specific to each invalid field.  
+
+3.1.2.3	Get list of Roles 
+3.1.2.3.1	Feature Requirements
+ Input 	 - Optional filters: name, usage status 
+ - Pagination parameters 
+ Output 	 List of roles with metadata: role ID, name, number of users assigned, permissions 
+ Actor 	 Administrator 
+ Alternative Flow 	 If no roles exist, return empty list with appropriate message 
+ Log 	 N/A 
+ Acceptance Criteria 	 Data should be sorted by the role name in the designated column by default 
+ If no data is available, the system should display “No Data” instead of an empty list. 
+ The view should display the following details for each record: 
+•	Role name 
+•	Role description 
+•	Role permissions 
+
+3.1.2.4	Delete Role 
+3.1.2.4.1	Feature Requirements
+ Input 	Role ID 
+ Output 	Deletion confirmation message 
+ Actor 	Administrator 
+ Alternative Flow 	- If role is currently assigned to users, system prevents deletion and prompts reassignment 
+- If role ID is not found, return error 
+ Log 	- Deletion timestamp 
+- Role ID 
+- Admin ID 
+ Acceptance Criteria 	- Roles can only be deleted if unassigned 
+- Deletion must be reflected immediately in the role list 
+
+3.1.3	Warehouse Management Item
+
+Warehouse are assigned by admin and there are only 3 roles: Admin, Supervisor, Engineer. Admin can create warehouse and equipment then Supervisor can manage that
+
+ 
+
+
+                                                                    Figure 4: Roles Management use case diagram
+
+
+3.1.3.1	Create Warehouse Management
+3.1.3.1.1	Feature Requirements
+Input	Warehouse Name, Location, Capacity, Description
+Output	Confirmation message with created warehouse ID
+Actor	Supervisor, Administrator
+Alternative Flow	If warehouse already exists, prompt user to edit instead.
+Log	- Log creation actions with details of the warehouse and user performing the action
+- Error if duplicate name/location exists
+Acceptance Criteria	- Unique Warehouse ID generated
+- Warehouse metadata stored (name, location, capacity)
+
+3.1.3.2	Update Warehouse Management
+3.1.3.2.1	Feature Requirements
+Input	Warehouse ID, Updated Warehouse Name, Updated Location, Updated Capacity, Updated Description
+Output	Confirmation message with updated warehouse details
+Actor	Supervisor, Administrator
+Alternative Flow	If warehouse not found, display "Warehouse not found" message
+Log	- Log update actions with old and new values for audit purposes
+- Error if duplicate name/location exists
+Acceptance Criteria	- Unique Warehouse ID generated
+- Warehouse metadata stored (name, location, capacity)
+3.1.3.3	Get List of Warehouse Management
+3.1.3.3.1	Feature Requirements
+Input	Filters (e.g., location, capacity range)
+Output	List of warehouses with ID, name, location, capacity, and status
+Actor	Admin, Supervisor, Engineer, Supplier Manager
+Alternative Flow	If no warehouses exist, return "No warehouses found" message.
+Log	Log all requests for retrieving the list of warehouses.
+Acceptance Criteria	- Results sorted by name/location
+- Pagination support for large datasets
+3.1.3.4	Delete Warehouse 
+3.1.3.4.1	Feature Requirements
+Input	Warehouse ID
+Output	Confirmation message or error if warehouse has active inventory
+Actor	Admin, Supervisor
+Alternative Flow	If warehouse not found, display "Warehouse cannot be deleted because it does not exist.
+Log	- Log deletion with reason and user ID
+- Prevent deletion if inventory exists
+Acceptance Criteria	- Deletion timestamp 
+- Delete ID 
+- Warehouse details logged
+
+3.1.3.5	Receive Inventory
+3.1.3.5.1	Feature Requirements
+Input	Equipment ID, Quantity, Warehouse ID, Supplier Name, Date Received
+Output	Confirmation message with received inventory details
+Actor	Supplier Manager, Admin
+Alternative Flow	If inventory does not match expected values, prompt for verification.
+Log	Log received items, supplier details, and user ID
+Alert if capacity exceeded
+Acceptance Criteria	- Recorded timestamp 
+- Receiver ID 
+- Inventory details
+
+3.1.3.6	Dispatch Inventory
+3.1.3.6.1	Feature Requirements
+Input	Equipment ID, Quantity, Warehouse ID, Date Dispatched, Destination
+Output	Confirmation message with dispatched inventory details
+Actor	Admin, Supervisor, Field Operator
+Alternative Flow	If insufficient inventory, display notification "Insufficient inventory available."
+Log	- Track dispatched items, requester, and timestamp
+- Alert for low stock
+Acceptance Criteria	- Recorded timestamp 
+- Dispatcher ID 
+- Dispatched inventory details
+3.1.3.7	View Inventory
+3.1.3.7.1	Feature Requirements
+Input	Warehouse ID, Filters (item type, quantity range, expiry date)
+Output	Inventory report with item details, quantities, locations
+Actor	Admin, Supervisor, Engineer, Supplier Manager, Field Operator
+Alternative Flow	If no inventory exists, return "No inventory available" message.
+Log	- Log report generation and user ID
+Acceptance Criteria	- Export to CSV/PDF
+- Real-time stock visibility
+
+3.1.4	3D Simulators Services
+3D Simulators are assigned by admin and there are only 5 roles: Admin, Supervisor, Engineer, Supplier Manager and Field Operator. This Services to Visualize 3D Instrument for Engineer to training and help Admin, Supervisor and Field Operator to control and get notification when have innocent alert 
+3.1.4.1	Visualize 3D Instrument
+3.1.4.1.1	Feature Requirements
+Input	Instrument ID, View Parameters (e.g., zoom, rotate, lighting)
+Output	3D visualization of the specified instrument
+Actor	Admin, Supervisor, Engineer, Field Operator
+Alternative Flow	If the 3D model fails to load, display: "Error loading the 3D model."
+Log	- Track user interactions (e.g., zoom, rotate) and access time
+- Log visualization access with user ID and timestamp
+Acceptance Criteria	- Realistic rendering of instruments 
+- Support for user interactions (e.g., zoom, rotate)
+3.1.4.2	Instrument Information
+3.1.4.2.1	Feature Requirements
+Input	Instrument ID
+Output	Detailed information including specifications, status, and operational parameters
+Actor	Admin, Supervisor, Engineer, Field Operator
+Alternative Flow	If no Instrument exists, return "No instrument available" message.
+If user lacks permissions (e.g., Supplier Manager): "Access denied."
+Log	- Log all access requests for instrument information.
+Acceptance Criteria	- Data retrieved matches database entries. 
+- Secure access control
+3.1.4.3	View Equipment Control Information
+3.1.4.3.1	Feature Requirements
+Input	Equipment ID or Instrument selection
+Output	Control parameters: Operational settings, alarms, current status, and alerts
+Actor	Admin, Supervisor, Engineer, Field Operator
+Alternative Flow	If equipment is offline: "No live data available. Last updated: [timestamp]."
+Log	- Log all views of control information.
+Acceptance Criteria	- Data matches the control system's readouts. 
+- Accessible based on user roles.
+
+3.1.4.4	View Oil Output
+3.1.4.4.1	Feature Requirements
+Input	Selected Well or Pipeline ID.
+Output	Oil production volume (barrels/day), historical trends, forecasts
+Actor	Admin, Supervisor, Engineer, Field Operator, Supplier Manager
+Alternative Flow	If no data for the time range: "No production records found."
+Log	- Log all oil output report generations.
+Acceptance Criteria	- Data sourced from SCADA/ERP systems 
+- Export to CSV/PDF
+
+
+3.1.4.5	Maintenance History
+3.1.4.5.1	Feature Requirements
+Input	Instrument or Equipment ID.
+Output	List of maintenance records: Date, Type of maintenance, Description, and Next Due Date.
+Actor	Admin, Supervisor, Engineer
+Alternative Flow	- If no history exists: "No maintenance records found."
+Log	- Log all accesses to maintenance history
+Acceptance Criteria	- Records accurately reflect database entries.
+- Attach PDF reports
+
+3.1.4.6	Incident Log
+3.1.4.6.1	Feature Requirements
+Input	Incident ID or Date Range, Instrument ID.
+Output	List of incidents: Date, Type, Severity, Description, Actions Taken.
+Actor	Admin, Supervisor, Engineer
+Alternative Flow	- If no incidents are found, display: "No incidents logged."
+Log	- Log all incident report views and edits.
+Acceptance Criteria	- Compliance with HSE (Health, Safety, Environment) standards
+
+3.1.4.7	View Engineer in Instrument
+3.1.4.7.1	Feature Requirements
+Input	Instrument ID or Engineer ID.
+Output	Current engineers assigned or operating the instrument
+Actor	Admin, Supervisor, Engineer, Field Operator
+Alternative Flow	- If no engineers are assigned, display: "No engineers currently assigned."
+Log	- Log all views of engineer assignments on instruments.
+Acceptance Criteria	- Display should accurately reflect current assignments.
+
+
+3.1.4.8	Monitor Oil Output
+3.1.4.8.1	Feature Requirements
+Input	Well ID, Time Range
+Output	Live dashboard with flow rates, pressure, and anomalies
+Actor	Admin, Supervisor, Field Operator
+Alternative Flow	If monitoring data is not available, display: "Oil monitoring data not accessible."
+Log	- Log all monitoring sessions and alerts.
+Acceptance Criteria	- Data visualization tools
+- Export PDF
+
+3.1.4.9	Dispatch Oil to Warehouse
+3.1.4.9.1	Feature Requirements
+Input	Warehouse ID, Quantity, Destination, Transport Method
+Output	- Confirmation message with dispatch ID
+- Updated 3D warehouse visualization showing incoming oil
+- Inventory level adjustment in real-time
+Actor	Admin, Supervisor, Field Operator, Supplier Manager
+Alternative Flow	- If destination warehouse is at capacity: "Dispatch failed. Warehouse capacity exceeded. Available: [X] barrels."
+ - If source is invalid (e.g., inactive well): "Invalid source. Verify well/supplier status."
+- If user lacks permissions: "Access denied. Only Admins/Supplier Managers can dispatch oil."
+Log	- Log dispatch details (source, destination, quantity, timestamp)
+- Track user who initiated the dispatch
+- Record transport method and ETA.
+Acceptance Criteria	- Real-time sync with inventory databases
+- 3D visualization updates (e.g., tank levels rise)
+- Alerts for delays in arrival time
+- Compliance with safety regulations for transport methods
+
+3.1.5	Instrument Information Service
+Instrument Management allows authorized roles to manage the lifecycle and configuration of 3D instruments used in simulations and operations. This ensures that the equipment visualizations and data parameters remain accurate and up-to-date.
+3.1.5.1	Create Instrument
+3.1.5.1.1	Feature Requirements
+Input	Instrument Name 
+Instrument Code (unique) 
+Instrument Type 
+Associated Equipment ID 
+Location (Well / Pipeline / Warehouse / Field) 
+Manufacturer 
+Model 
+Installation Date 
+Operational Status (Active / Inactive / Maintenance) 
+Description (optional)
+Output	- Instrument creation confirmation message 
+- Instrument ID- Inventory level adjustment in real-time
+Actor	Admin
+Alternative Flow	If Instrument Code already exists, system returns duplication error 
+If associated equipment does not exist, system returns validation error
+Log	- Creation timestamp 
+- Instrument ID 
+- Admin ID
+Acceptance Criteria	- Instrument Code must be unique 
+- All required fields must be validated before creation 
+- Instrument record is stored in database and available for visualization and monitoring
+
+3.1.5.2	Update Instrument
+3.1.5.2.1	Feature Requirements
+Input	- Instrument ID 
+- Updated Instrument Name 
+- Updated Type 
+- Updated Location 
+- Updated Status 
+- Updated Description (optional)
+Output	- Instrument update confirmation message
+Actor	Administrator, Supervisor
+Alternative Flow	If Instrument ID does not exist, return "Instrument not found" 
+If instrument is currently in an active incident, restrict critical updates
+Log	- Update timestamp 
+- Instrument ID 
+- User ID 
+- Changed fields
+Acceptance Criteria	- Instrument must exist in system 
+- Only authorized roles can update instrument data 
+
+3.1.5.3	Get List of Instruments
+3.1.5.3.1	Feature Requirements
+Input	- Optional filters: Instrument Type, Status, Location 
+- Pagination parameters
+Output	- List of instruments with metadata: 
+•	Instrument ID 
+•	Name 
+•	Type 
+•	Status 
+•	Location
+Actor	Admin, Supervisor, Engineer
+Alternative Flow	If no instruments match criteria, return "No instruments found"
+Log	N/A
+Acceptance Criteria	- Data sorted by Instrument Name by default 
+- Pagination and filtering applied correctly
+
+3.1.5.4	Assign Engineer to Instrument
+3.1.5.4.1	Feature Requirements
+Input	- Instrument ID 
+- Engineer ID 
+- Assignment Role (Primary / Support)
+Output	- Assignment confirmation message
+Actor	Admin, Supervisor
+Alternative Flow	- If Engineer ID or Instrument ID does not exist, return error 
+- If engineer already assigned, return warning
+Log	- Assignment timestamp 
+- Instrument ID 
+- Engineer ID 
+- Assigned by user ID
+Acceptance Criteria	- Engineer assignment reflected in “View Engineer in Instrument” feature 
+- Only authorized roles can assign engineers
+
+3.1.5.5	View Instrument Details
+3.1.5.5.1	Feature Requirements
+Input	- Instrument ID 
+Output	- 3D Visual Model 
+- Instrument profile including: 
+•	Specifications 
+•	Operational parameters 
+•	Current status 
+•	Last maintenance date 
+•	Assigned engineers
+Actor	Admin, Supervisor, Engineer
+Alternative Flow	- If Instrument ID not found, return "No instrument available" 
+- If user lacks permission, return "Access denied"
+Log	- Instrument access timestamp 
+- User ID
+Acceptance Criteria	- Displayed data must match database records 
+- Secure access control enforced
+
+3.1.5.6	Delete Instrument
+3.1.5.6.1.1	Feature Requirements
+Input	- Instrument ID 
+- Deactivation Reason
+Output	- Deactivation confirmation message
+Actor	Admin
+Alternative Flow	- If instrument is linked to active operations, prevent deletion and suggest deactivation 
+- If Instrument ID not found, return error
+Log	- Deactivation timestamp 
+- Instrument ID 
+- Admin ID 
+- Reason
+Acceptance Criteria	- Instruments must be soft-deleted or deactivated 
+- Deactivated instruments cannot generate live data or alerts
+
+3.1.5.7	Instrument Maintenance Scheduling
+3.1.5.7.1	Feature Requirements
+Input	- Instrument ID 
+- Maintenance Type 
+- Scheduled Date 
+- Responsible Engineer
+Output	- Maintenance schedule confirmation
+Actor	Admin, Supervisor, Engineer
+Alternative Flow	- If Instrument not found, return error
+Log	- Schedule creation timestamp 
+- Instrument ID 
+- User ID
+Acceptance Criteria	- Maintenance record appears in Maintenance History 
+- Notifications triggered before due date
+
+3.1.6	Control Equipment Service
+Control Equipment Service allows authorized users to monitor, control, and respond to the operating status of equipment/instrument in real time.
+3.1.6.1	Create Equipment
+3.1.6.1.1	Feature Requirements
+Input	- Equipment Name 
+- Equipment Type (e.g., Pump, Valve, Compressor, Sensor) 
+- Serial Number 
+- Model 
+- Manufacturer 
+- Installation Date 
+- Assigned Location (Well, Pipeline, Warehouse, Platform) 
+- Status (Active / Inactive / Under Maintenance) 
+- Description (optional)
+Output	- Equipment creation confirmation message 
+- Created Equipment ID
+Actor	Admin, Supervisor
+Alternative Flow	- If Equipment Name or Serial Number already exists, the system returns a duplication error message. 
+- If required fields are missing or invalid, the system returns validation errors
+Log	- Equipment ID 
+- Creation timestamp 
+- Created by (User ID) 
+- Equipment type and location
+Acceptance Criteria	- All required fields must be validated before creation. 
+- Equipment ID must be unique and auto-generated. 
+- Newly created equipment must appear immediately in the equipment list.
+
+3.1.6.2	Update Equipment
+3.1.6.2.1	Feature Requirements
+Input	- Equipment ID 
+- Updated information:
+•	Equipment Name 
+•	Equipment Type 
+•	Location 
+•	Status 
+•	Technical specifications 
+•	Description
+Output	- Equipment update confirmation message
+Actor	Admin, Supervisor
+Alternative Flow	- If Equipment ID does not exist, the system returns "Equipment not found." 
+- If user does not have permission to update restricted fields, the system returns "Access denied."
+Log	- Equipment ID 
+- Updated timestamp 
+- Updated by (User ID) 
+- Old values vs. new values
+Acceptance Criteria	- Equipment must exist in the system before updating. 
+- Changes must be saved correctly in the database. 
+- Status updates must reflect immediately in related modules (3D Simulator, Control Service).
+
+
+3.1.6.3	Delete Equipment
+3.1.6.3.1	Feature Requirements
+Input	- Equipment ID 
+Output	- Deletion confirmation message
+Actor	Admin
+Alternative Flow	- If Equipment ID does not exist, return "Equipment not found." 
+- If equipment is currently active, assigned to operations, or linked to inventory, deletion is blocked with message:
+"Equipment cannot be deleted because it is currently in use."
+Log	- Equipment ID 
+- Deletion timestamp 
+- Admin ID 
+- Reason for deletion (if provided)
+Acceptance Criteria	- Only Administrator can delete equipment. 
+- Equipment must be soft-deleted to preserve historical data. 
+- Deleted equipment must not appear in active equipment lists. 
+
+3.1.6.4	View Equipment Detail
+3.1.6.4.1	Feature Requirements
+Input	- Equipment ID 
+Output	- Detailed equipment information:
+•	Equipment Name 
+•	Type 
+•	Serial Number 
+•	Model & Manufacturer 
+•	Location 
+•	Status 
+•	Installation Date 
+•	Technical specifications 
+•	Last maintenance date
+Actor	Admin, Supervisor, Engineer
+Alternative Flow	- If Equipment ID does not exist, return "Equipment not found." 
+- If user does not have permission, return "Access denied."
+Log	- Equipment ID 
+- User ID 
+- Access timestamp
+Acceptance Criteria	- Displayed information must match database records. 
+- Access must follow role-based permissions.
+
+3.1.6.5	View Equipment Maintenance History
+3.1.6.5.1	Feature Requirements
+Input	- Equipment ID 
+- (Optional) Date Range
+Output	- List of maintenance records:
+•	Maintenance Date 
+•	Maintenance Type (Inspection, Repair, Replacement) 
+•	Description 
+•	Performed By 
+•	Next Scheduled Maintenance Date
+Actor	Admin, Supervisor, Engineer
+Alternative Flow	- If no maintenance history exists, return "No maintenance records found." 
+- If Equipment ID does not exist, return "Equipment not found."
+Log	- Equipment ID 
+- User ID 
+- Query timestamp
+Acceptance Criteria	- Maintenance records must be read-only and not editable. 
+- Data must accurately reflect stored maintenance logs. 
+- Support exporting maintenance history to PDF/CSV for audit and compliance purposes.
+
+3.1.6.6	Get List of Equipment
+3.1.6.6.1	Feature Requirements
+Input	- Filters:
+•	Equipment Name 
+•	Equipment Type 
+•	Status (Active / Inactive / Under Maintenance) 
+•	Location / Warehouse ID
+- Pagination parameters:
+•	Page 
+•	Limit
+Output	- List of equipment with metadata:
+•	Equipment ID 
+•	Equipment Name 
+•	Equipment Type 
+•	Status 
+•	Location 
+•	Serial Number 
+•	Last Maintenance Date
+- Total count of equipment records
+Actor	Admin, Supervisor, Engineer
+Alternative Flow	- If no equipment matches the provided filters, the system returns an empty list with message:
+"No equipment found."
+- If invalid filter parameters are provided, the system returns a validation error message.
+Log	- Log request timestamp 
+- User ID 
+- Applied filters (if any)
+Acceptance Criteria	- Equipment list must be fetched correctly from the database. 
+- Pagination and filtering must be applied accurately. 
+- Total count must reflect the filtered result set. 
+- Equipment list must be sorted by Equipment Name by default.
+
+4.	Other Requirements
+-	Each service has its own database. 
+-	Every features need an API detail design.
+
+5.	Non-functional Requirement
+5.1	Offline Operation & Edge Computing
+Local Data Storage:
+Store 72+ hours of critical data (e.g., sensor readings, drilling logs) locally on edge devices during connectivity outages
+Edge Processing: 
+Perform real-time analytics (e.g., pressure anomaly detection) on-site without cloud dependency
+Sync-on-Reconnect: 
+Automatically synchronize data with onshore systems once connectivity is restored, prioritizing critical data (e.g., safety alerts)
+5.2	Data Integrity & Redundancy
+Redundant Storage
+Maintain triple redundancy for critical data across local servers, edge devices, and portable storage (e.g., ruggedized SSDs)
+Checksum Validation 
+Ensure data integrity during intermittent transfers using SHA-256 checksums
+5.3	Low-Bandwidth Optimization
+Data Compression
+Compress telemetry data (e.g., drilling parameters, equipment status) by ≥70% before transmission.
+Selective Sync:
+Transmit only priority data (e.g., alarms, compliance logs) during low bandwidth, deferring non-critical data
+5.4	Resilient Communication
+Multi-Channel Connectivity:
+Support failover between satellite, radio (VHF/UHF), and mesh networks for emergency communication
+Heartbeat Monitoring
+Detect connectivity loss within 30 seconds and switch to offline mode automatically
+5.5	Harsh Environment Resilience
+Hardened Devices:
+Operate in saltwater corrosion, high humidity (100%), and temperatures from -20°C to 50°C.
+Vibration Resistance:
+Withstand vibrations up to 5 Grms (e.g., from drilling operations)
+5.6	Safety & Compliance
+Offline Alerts:
+Trigger local alarms (e.g., sirens, LED indicators) for critical events (e.g., gas leaks) when disconnected.
+Regulatory Logs
+Store compliance data (e.g., blowout Preventer tests) locally and auto-upload when connectivity resumes.
+5.7	User Interface (UI) for Offline Use
+Compliance 
+Allow users to view and interact with the latest cached data snapshots (e.g., pressure trends) offline
+Offline Task Execution
+Enable essential workflows (e.g., emergency shutdowns, equipment checks) without connectivity.
+5.8	Security in Offline Mode
+Local Authentication
+Cache IAM roles/permissions locally to enforce access control during connectivity loss.
+Tamper-Proof Logs
+Digitally sign offline logs to prevent unauthorized modifications
+5.9	Compliance (Offline Reporting)
+Local Regulatory Reporting: The system must be able to generate and store preliminary regulatory reports (e.g., production logs, safety incident reports) locally, even if not immediately transmitted, to ensure compliance during communication blackouts.
+Data Integrity for Audits: All data collected on the platform, whether transmitted or not, must maintain a verifiable chain of custody and integrity suitable for regulatory audits.
+

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test MockAPI</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #1e293b; color: #e2e8f0; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #3b82f6; color: white; border: none; border-radius: 6px; }
+    button:hover { background: #2563eb; }
+    pre { background: #0f172a; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    .error { color: #ef4444; }
+    .success { color: #10b981; }
+  </style>
+</head>
+<body>
+  <h1>🔍 MockAPI Diagnostic Tool</h1>
+  
+  <div>
+    <button onclick="testGetUsers()">1. Test GET All Users</button>
+    <button onclick="testCreateUser()">2. Create Test User</button>
+    <button onclick="testDeleteUser()">3. Test Delete User (ID: 1)</button>
+  </div>
+  
+  <div id="output" style="margin-top: 20px;"></div>
+
+  <script>
+    const API_URL = 'https://6724944e493fac3cf24eae5c.mockapi.io/Users';
+    const output = document.getElementById('output');
+
+    async function testGetUsers() {
+      output.innerHTML = '<p>⏳ Fetching users...</p>';
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        
+        output.innerHTML = `
+          <p class="success">✅ Success! Status: ${response.status}</p>
+          <p><strong>Total users:</strong> ${data.length}</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+
+        if (data.length > 0) {
+          console.log('First user ID:', data[0].id, 'Type:', typeof data[0].id);
+        }
+      } catch (error) {
+        output.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+      }
+    }
+
+    async function testCreateUser() {
+      output.innerHTML = '<p>⏳ Creating test user...</p>';
+      try {
+        const newUser = {
+          username: "testuser",
+          fullName: "Test User",
+          email: "test@example.com",
+          password: "123456",
+          role: "Engineer",
+          status: "active"
+        };
+
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser)
+        });
+        
+        const data = await response.json();
+        
+        output.innerHTML = `
+          <p class="success">✅ User created! Status: ${response.status}</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+          <p><strong>Created user ID:</strong> ${data.id} (Type: ${typeof data.id})</p>
+        `;
+      } catch (error) {
+        output.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+      }
+    }
+
+    async function testDeleteUser() {
+      const userId = prompt("Enter User ID to delete:", "1");
+      if (!userId) return;
+
+      output.innerHTML = `<p>⏳ Deleting user ID: ${userId}...</p>`;
+      try {
+        const response = await fetch(`${API_URL}/${userId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.status === 404) {
+          output.innerHTML = `
+            <p class="error">❌ 404 Not Found</p>
+            <p>User ID "${userId}" does not exist on MockAPI</p>
+            <p><strong>Tip:</strong> Click "Test GET All Users" to see available IDs</p>
+          `;
+          return;
+        }
+
+        const data = await response.json();
+        
+        output.innerHTML = `
+          <p class="success">✅ User deleted! Status: ${response.status}</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        output.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+      }
+    }
+
+    // Auto-run on load
+    testGetUsers();
+  </script>
+</body>
+</html>
