@@ -1,8 +1,8 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 // Đảm bảo tên file import khớp với thực tế (Sidebar.jsx hay SideBar.jsx)
-import SideBar from "./SideBar"; 
-import { TopBar } from "./TopBar"; 
+import SideBar from "./Sidebar"; 
+import { TopBar } from "./Topbar"; 
 
 export default function MainLayout() {
   return (
