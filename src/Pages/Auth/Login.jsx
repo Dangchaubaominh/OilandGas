@@ -30,7 +30,7 @@ const Login = () => {
       // Lưu vào LocalStorage
       setLogin(user, accessToken);
 
-      showToast("success", `Login successful! Welcome back, ${user.email}`);
+      showToast("success", `Login successful! Welcome back, ${user.name}`);
       // Điều hướng về trang Dashboard
       navigate("/app/dashboard");
     } catch (error) {

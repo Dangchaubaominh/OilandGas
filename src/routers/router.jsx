@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute from "./PrivateRoute";
 import MainLayout from "../layouts/MainLayouts";
 import Dashboard from "../Pages/Management/DashBoard";
-import UserManagement from "../Pages/Management/UserManagement";
+import UserManagement from "../Pages/UserManagement/UserManagement";
 import RoleManagement from "../Pages/Management/RoleManagement";
 import InstrumentManagement from "../Pages/Management/InstrumentManagement";
 import UserDetail from "../Pages/Management/UserDetail";
@@ -11,20 +11,21 @@ import Schedule from "../Pages/Management/Schedule";
 import Settings from "../Pages/Management/Settings";
 import WarehouseInventory from "../Pages/Management/WarehouseInventory";
 import Simulator from "../Pages/Management/Simulator";
-import EquipmentControl from "../Pages/Management/EquipmentControl";
+import EquipmentControl from "../Pages/Equipment/EquipmentControl";
 import Login from "../Pages/Auth/Login";
+import Profile from "../Pages/UserProfile/Profile";
 
 // ... Import thêm các trang khác khi cần
 
 export const router = createBrowserRouter([
   // --- NHÓM PUBLIC (Trang đăng nhập) ---
-  { 
-    path: "*", 
-    element: <Navigate to="/login" replace /> 
+  {
+    path: "*",
+    element: <Navigate to="/login" replace />,
   },
-  { 
-    path: "/login", 
-    element: <Login /> 
+  {
+    path: "/login",
+    element: <Login />,
   },
 
   // --- NHÓM PRIVATE (Yêu cầu đăng nhập mới vào được) ---
@@ -43,6 +44,10 @@ export const router = createBrowserRouter([
       {
         path: "dashboard",
         element: <Dashboard />,
+      },
+      {
+        path: "profile",
+        element: <Profile />,
       },
       {
         path: "users",
@@ -72,7 +77,7 @@ export const router = createBrowserRouter([
         path: "equipment",
         element: <EquipmentControl />,
       },
-       {
+      {
         path: "reports",
         element: <Reports />,
       },

@@ -1,28 +1,34 @@
 import * as yup from "yup";
 
 export const userSchema = yup.object().shape({
-  username: yup.string(), // Không bắt buộc nữa vì BE không cần
-  fullName: yup.string().required("Họ và tên không được để trống"),
+  name: yup
+    .string()
+    .trim()
+    .required("Full name is required")
+    .min(2, "Full name is too short"),
+
   email: yup
     .string()
-    .email("Định dạng email không hợp lệ")
-    .required("Email không được để trống"),
-  phone: yup.string().required("Số điện thoại không được để trống"), // THÊM MỚI
-  department: yup.string().required("Phòng ban không được để trống"), // THÊM MỚI
-  password: yup
+    .trim()
+    .lowercase() // Tự động chuyển về chữ thường để tránh lỗi duplicate do chữ hoa
+    .email("Invalid email format")
+    .required("Email is required"),
+
+  phone: yup
     .string()
-    .test(
-      "password-validation",
-      "Mật khẩu phải có ít nhất 6 ký tự",
-      function (value) {
-        const { isEditMode } = this.options.context;
-        if (isEditMode && (!value || value.trim() === "")) return true;
-        return value && value.length >= 6;
-      },
+    .trim()
+    .required("Phone number is required")
+    .matches(
+      /(84|0[3|5|7|8|9])+([0-9]{8})\b/g,
+      "Invalid Vietnamese phone number format",
     ),
-  role: yup.string().required("Vui lòng chọn quyền (Role)"),
+
+  department: yup.string().required("Department is required"),
+
+  role: yup.string().required("Please select a role"),
+
   status: yup
     .string()
-    .oneOf(["active", "inactive", "locked"])
+    .oneOf(["active", "inactive", "locked"], "Invalid status")
     .default("active"),
 });
