@@ -1,31 +1,40 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { loginSchema } from "../../schemas/loginSchema";
 import useAuthStore from "../../store/useAuthStore";
 import authApi from "../../services/authApi";
 import { Eye, EyeOff, CheckCircle2, KeyRound } from "lucide-react";
 import { showToast } from "../../utils/toastHandler";
 
 const Login = () => {
-  // --- 1. Quản lý State ---
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const setLogin = useAuthStore((state) => state.setLogin);
   const navigate = useNavigate();
 
-  // Hàm xử lý đăng nhập (Giữ nguyên logic của bạn)
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  // Hàm xử lý đăng nhập
+  const handleLogin = async (data) => {
     setIsLoading(true);
     try {
-      // Giả lập API Call (Bạn thay bằng gọi authApi thực tế của bạn)
-      const response = await authApi.login({ email, password });
+      const response = await authApi.login({
+        email: data.email,
+        password: data.password,
+      });
       const { accessToken, user } = response.data.data;
-
-      // await new Promise((resolve) => setTimeout(resolve, 1500)); // Fake delay
-      // const token = "mock_token_123";
-      // const user = { name: "John Davis" };
 
       // Lưu vào LocalStorage
       setLogin(user, accessToken);
@@ -97,7 +106,7 @@ const Login = () => {
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleSubmit(handleLogin)} className="space-y-5">
             {/* Input Email */}
             <div className="space-y-1.5">
               <label className="block text-gray-300 text-xs font-medium ml-1">
@@ -105,12 +114,15 @@ const Login = () => {
               </label>
               <input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email")}
                 placeholder="john.davis@oilgas.com"
-                required
-                className="w-full bg-[#1e2330] border border-gray-700 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder:text-gray-500"
+                className={`w-full bg-[#1e2330] border ${errors.email ? "border-red-500" : "border-gray-700"} text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder:text-gray-500`}
               />
+              {errors.email && (
+                <span className="text-red-500 text-xs ml-1">
+                  {errors.email.message}
+                </span>
+              )}
             </div>
 
             {/* Input Password */}
@@ -121,11 +133,9 @@ const Login = () => {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  {...register("password")}
                   placeholder="••••••••••••"
-                  required
-                  className="w-full bg-[#1e2330] border border-gray-700 text-white text-sm rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder:text-gray-500 tracking-wider"
+                  className={`w-full bg-[#1e2330] border ${errors.password ? "border-red-500" : "border-gray-700"} text-white text-sm rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder:text-gray-500 tracking-wider`}
                 />
                 <button
                   type="button"
@@ -135,6 +145,11 @@ const Login = () => {
                   {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                 </button>
               </div>
+              {errors.password && (
+                <span className="text-red-500 text-xs ml-1">
+                  {errors.password.message}
+                </span>
+              )}
             </div>
 
             {/* Remember & Forgot Password */}

@@ -1,4 +1,4 @@
-// src/api/visual3DApi.js
+// src/services/visual3DApi.js
 import axiosClient from "./AxiosClient";
 
 const visual3DApi = {

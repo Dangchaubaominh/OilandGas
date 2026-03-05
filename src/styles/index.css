@@ -1,0 +1,29 @@
+/* ========== CSS INDEX ========== */
+/* Main entry point for all modular styles */
+
+/* Base & Global Styles */
+@import "./base.css";
+
+/* Component Styles */
+@import "./components/topbar.css";
+@import "./components/sidebar.css";
+@import "./components/table.css";
+@import "./components/filters.css";
+@import "./components/badges.css";
+@import "./components/buttons.css";
+@import "./components/forms.css";
+@import "./components/modal.css";
+@import "./components/cards.css";
+
+/* Page-Specific Styles */
+@import "./pages/dashboard.css";
+@import "./pages/reports.css";
+@import "./pages/settings.css";
+@import "./pages/user-detail.css";
+@import "./pages/user-management.css";
+@import "./pages/role-management.css";
+@import "./pages/warehouse.css";
+@import "./pages/instrument.css";
+@import "./pages/equipment.css";
+@import "./pages/schedule.css";
+@import "./pages/simulator.css";

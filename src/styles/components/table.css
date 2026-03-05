@@ -1,0 +1,94 @@
+/* ========== TABLE ========== */
+
+.table-container {
+  background: var(--bg-card);
+  border-radius: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--border-primary);
+}
+
+.data-table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: collapse;
+}
+
+.data-table thead {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.data-table th {
+  padding: 18px 20px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px dotted var(--border-primary);
+  transition: background 0.2s;
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg-surface);
+}
+
+.data-table td {
+  padding: 18px 20px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+/* ========== ACTION BUTTONS ========== */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.btn-edit {
+  background: transparent;
+  color: #60a5fa;
+}
+
+.btn-edit:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.btn-delete {
+  background: transparent;
+  color: #f87171;
+}
+
+.btn-delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.btn-view {
+  background: transparent;
+  color: #34d399;
+}
+
+.btn-view:hover {
+  background: rgba(16, 185, 129, 0.15);
+}

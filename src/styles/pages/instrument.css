@@ -1,0 +1,496 @@
+/* ========== INSTRUMENT DETAIL PAGE ========== */
+.instrument-detail-page {
+  width: 100%;
+  max-width: 100%;
+}
+
+.instrument-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 16px 0 8px 0;
+}
+
+.instrument-title-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.instrument-title-left h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.instrument-subtitle {
+  margin: 0 0 32px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.btn-view-3d {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-3d:hover {
+  background: var(--hover-subtle);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-export:hover {
+  background: var(--hover-subtle);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.instrument-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 28px;
+}
+
+@media (max-width: 1200px) {
+  .instrument-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.instrument-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 28px;
+}
+
+.instrument-card:last-child {
+  margin-bottom: 0;
+}
+
+.instrument-card h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.btn-request-update {
+  padding: 8px 16px;
+  background: #2563eb;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-request-update:hover {
+  background: #1d4ed8;
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.spec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spec-item-full {
+  grid-column: 1 / -1;
+}
+
+.spec-item label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.spec-item span {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.badge-calibrated {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+  width: fit-content;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.status-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.status-box-full {
+  grid-column: 1 / -1;
+}
+
+.status-box label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.status-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.value-large {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.status-success {
+  color: #10b981;
+}
+
+.badge-normal {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.text-success {
+  font-size: 13px;
+  color: #10b981;
+}
+
+.equipment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.equipment-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-surface);
+  border-radius: 8px;
+}
+
+.equipment-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.equipment-info {
+  flex: 1;
+}
+
+.equipment-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.equipment-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.maintenance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.maintenance-item {
+  padding: 16px;
+  background: var(--bg-surface);
+  border-radius: 8px;
+}
+
+.maintenance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.maintenance-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.badge-upcoming {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-delayed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-completed {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.maintenance-task {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.metrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.metric-item {
+  padding: 16px;
+  background: var(--bg-surface);
+  border-radius: 8px;
+}
+
+.metric-item label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.metric-percent.success {
+  color: #10b981;
+}
+
+.metric-highlight {
+  color: #60a5fa;
+}
+
+.alert-count {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.alert-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.alert-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-message {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.alert-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Instrument Management Enhancements */
+.instrument-stats {
+  margin-bottom: 28px;
+}
+
+.tag-id {
+  font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.instrument-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.instrument-type-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.instrument-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.instrument-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.instrument-type {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.location-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.manufacturer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.manufacturer-name {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.model-number {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.calibration-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.calendar-icon {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.instrument-table {
+  min-width: 900px;
+}
+
+.instrument-row {
+  transition: all 0.15s ease;
+}
+
+.instrument-row:hover {
+  background: rgba(59, 130, 246, 0.05);
+}

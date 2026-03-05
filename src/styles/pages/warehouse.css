@@ -1,0 +1,194 @@
+/* ========== WAREHOUSE INVENTORY ========== */
+.warehouse-inventory {
+  padding: 0;
+}
+
+.btn-equipment-inventory {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-equipment-inventory:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.capacity-cell {
+  min-width: 280px;
+}
+
+.capacity-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.capacity-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.capacity-percent {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.capacity-percent.capacity-good {
+  color: #10b981;
+}
+
+.capacity-percent.capacity-warning {
+  color: #f59e0b;
+}
+
+.capacity-percent.capacity-critical {
+  color: #ef4444;
+}
+
+.capacity-bar-container {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-inset);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.capacity-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.capacity-bar.capacity-good {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.capacity-bar.capacity-warning {
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.capacity-bar.capacity-critical {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.btn-view-inventory {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-view-inventory:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-updated {
+  background: #dc2626;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Equipment Control */
+.equipment-control {
+  padding: 0;
+}
+
+.badge-type-pump {
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+}
+
+.badge-type-valve {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
+.badge-type-sensor {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+}
+
+.equipment-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.equipment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+}
+
+.section-icon-green {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.section-icon-orange {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .equipment-sections {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}

@@ -1,4 +1,4 @@
-// src/api/equipmentApi.js
+// src/services/equipmentApi.js
 import axiosClient from "./AxiosClient";
 
 const equipmentApi = {

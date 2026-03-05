@@ -1,7 +1,7 @@
 import * as yup from "yup";
 
 export const changePasswordSchema = yup.object().shape({
-  oldPassword: yup.string().trim().required("Current password is required"),
+  currentPassword: yup.string().trim().required("Current password is required"),
 
   newPassword: yup
     .string()
@@ -9,7 +9,7 @@ export const changePasswordSchema = yup.object().shape({
     .required("New password is required")
     .min(6, "New password must be at least 6 characters"),
 
-  confirmPassword: yup
+  confirmNewPassword: yup
     .string()
     .trim()
     .required("Please confirm your new password")

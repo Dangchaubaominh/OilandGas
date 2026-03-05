@@ -7,6 +7,10 @@ import {
   FaSearch,
   FaTimes,
   FaSync,
+  FaThermometerHalf,
+  FaTachometerAlt,
+  FaWater,
+  FaRulerVertical,
   FaCheckCircle,
   FaExclamationTriangle,
   FaTimesCircle,
@@ -14,22 +18,19 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaEye,
-  FaCogs,
-  FaOilCan,
-  FaMicrochip,
-  FaCog,
+  FaTools,
   FaCalendarAlt,
 } from "react-icons/fa";
-import equipmentApi from "../../services/equipmentApi";
+import instrumentApi from "../../services/instrumentApi";
 
-export default function EquipmentControl() {
+export default function InstrumentManagement() {
   const navigate = useNavigate();
 
-  // --- STATES FOR API & FILTERS ---
-  const [equipment, setEquipment] = useState([]);
+  // --- STATES CHO API & BỘ LỌC ---
+  const [instruments, setInstruments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filter states
+  // States quản lý filter
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -38,42 +39,47 @@ export default function EquipmentControl() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // States for Form Modal
+  // States cho Form Modal
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [formData, setFormData] = useState({
-    equipmentName: "",
-    equipmentType: "",
-    serialNumber: "",
-    model: "",
+    tagId: "",
+    instrumentType: "",
     manufacturer: "",
+    modelNumber: "",
     location: "",
-    installDate: "",
-    currentStatus: "",
-    technicalSpec: "",
-    needsCalibration: false,
+    installationDate: "",
+    lastCalibrationDate: "",
+    calibrationInterval: "",
+    description: "",
+    serialNumber: "",
+    rangeMin: "",
+    rangeMax: "",
+    unit: "",
   });
 
-  // --- FETCH DATA FROM API ---
-  const fetchEquipmentData = useCallback(
+  // --- FETCH DATA TỪ API ---
+  const fetchInstruments = useCallback(
     async (isManual = false) => {
       if (!isManual && isLoading) setIsLoading(true);
 
       try {
-        const response = await equipmentApi.getEquipmentList({
+        const params = {
           page: 1,
           limit: 100,
           name: searchQuery.trim() || undefined,
           status: statusFilter || undefined,
           type: typeFilter || undefined,
-        });
+        };
 
-        const equipmentList = response.data?.data?.equipment || [];
-        setEquipment(Array.isArray(equipmentList) ? equipmentList : []);
-        setCurrentPage(1);
+        const response = await instrumentApi.getInstrumentList(params);
+        const list =
+          response.data?.data?.instruments || response.data?.data || [];
+        setInstruments(Array.isArray(list) ? list : []);
+        setCurrentPage(1); // Reset to first page when data changes
       } catch (error) {
-        console.error("Error fetching equipment:", error);
+        console.error("Error fetching instruments:", error);
       } finally {
         setIsLoading(false);
       }
@@ -81,60 +87,54 @@ export default function EquipmentControl() {
     [searchQuery, statusFilter, typeFilter],
   );
 
-  // Debounce Search
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchEquipmentData();
+      fetchInstruments();
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, typeFilter, fetchEquipmentData]);
+  }, [searchQuery, statusFilter, typeFilter, fetchInstruments]);
 
   // --- COMPUTED STATS ---
   const stats = useMemo(() => {
-    const total = equipment.length;
-    const active = equipment.filter(
+    const total = instruments.length;
+    const active = instruments.filter(
       (i) =>
         i.status?.toLowerCase() === "active" ||
         i.status?.toLowerCase() === "operational",
     ).length;
-    const maintenance = equipment.filter(
-      (i) => i.status?.toLowerCase() === "maintenance",
-    ).length;
-    const inactive = equipment.filter(
+    const calibrationDue = instruments.filter(
       (i) =>
-        i.status?.toLowerCase() === "inactive" ||
-        i.status?.toLowerCase() === "offline",
+        i.status?.toLowerCase() === "calibration due" ||
+        i.status?.toLowerCase() === "maintenance",
     ).length;
-    return { total, active, maintenance, inactive };
-  }, [equipment]);
+    const faulty = instruments.filter(
+      (i) =>
+        i.status?.toLowerCase() === "faulty" ||
+        i.status?.toLowerCase() === "inactive",
+    ).length;
+    return { total, active, calibrationDue, faulty };
+  }, [instruments]);
 
   // --- PAGINATION ---
-  const paginatedEquipment = useMemo(() => {
+  const paginatedInstruments = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return equipment.slice(startIndex, startIndex + itemsPerPage);
-  }, [equipment, currentPage, itemsPerPage]);
+    return instruments.slice(startIndex, startIndex + itemsPerPage);
+  }, [instruments, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(equipment.length / itemsPerPage);
+  const totalPages = Math.ceil(instruments.length / itemsPerPage);
 
   // --- HELPERS ---
-  const getTypeIcon = (type) => {
-    const lowerType = type?.toLowerCase() || "";
-    if (lowerType.includes("pump")) return <FaOilCan />;
-    if (lowerType.includes("valve")) return <FaCog />;
-    if (lowerType.includes("sensor")) return <FaMicrochip />;
-    return <FaCogs />;
-  };
-
   const getStatusClass = (status) => {
     const lowerStatus = status?.toLowerCase() || "";
     switch (lowerStatus) {
-      case "operational":
       case "active":
+      case "operational":
         return "badge-active";
+      case "calibration due":
       case "maintenance":
         return "badge-calibration-due";
+      case "faulty":
       case "inactive":
-      case "offline":
         return "badge-faulty";
       default:
         return "badge-default";
@@ -144,58 +144,67 @@ export default function EquipmentControl() {
   const getStatusIcon = (status) => {
     const lowerStatus = status?.toLowerCase() || "";
     switch (lowerStatus) {
-      case "operational":
       case "active":
+      case "operational":
         return <FaCheckCircle />;
+      case "calibration due":
       case "maintenance":
         return <FaExclamationTriangle />;
+      case "faulty":
       case "inactive":
-      case "offline":
         return <FaTimesCircle />;
       default:
         return null;
     }
   };
 
-  // --- FORM HANDLERS ---
+  const getTypeIcon = (type) => {
+    const lowerType = type?.toLowerCase() || "";
+    if (lowerType.includes("pressure")) return <FaTachometerAlt />;
+    if (lowerType.includes("temperature")) return <FaThermometerHalf />;
+    if (lowerType.includes("flow")) return <FaWater />;
+    if (lowerType.includes("level")) return <FaRulerVertical />;
+    return <FaTools />;
+  };
+
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Saving equipment:", formData);
-    alert("Add new equipment feature is pending Backend API update!");
+    console.log("Saving instrument:", formData);
+    alert("Add new instrument feature is pending Backend API update!");
     handleCancel();
   };
 
   const handleCancel = () => {
     setShowModal(false);
     setFormData({
-      equipmentName: "",
-      equipmentType: "",
-      serialNumber: "",
-      model: "",
+      tagId: "",
+      instrumentType: "",
       manufacturer: "",
+      modelNumber: "",
       location: "",
-      installDate: "",
-      currentStatus: "",
-      technicalSpec: "",
-      needsCalibration: false,
+      installationDate: "",
+      lastCalibrationDate: "",
+      calibrationInterval: "",
+      description: "",
+      serialNumber: "",
+      rangeMin: "",
+      rangeMax: "",
+      unit: "",
     });
   };
 
-  const handleDeleteClick = (item) => {
-    setDeleteTarget(item);
+  const handleDeleteClick = (instrument) => {
+    setDeleteTarget(instrument);
     setShowDeleteModal(true);
   };
 
   const handleDeleteConfirm = () => {
-    console.log("Deleting equipment:", deleteTarget);
+    console.log("Deleting instrument:", deleteTarget);
     alert("Delete feature is pending Backend API update!");
     setShowDeleteModal(false);
     setDeleteTarget(null);
@@ -210,40 +219,40 @@ export default function EquipmentControl() {
   const hasActiveFilters = searchQuery || statusFilter || typeFilter;
 
   return (
-    <div className="equipment-control">
+    <div className="instrument-management">
       {/* Page Header */}
       <div className="page-header">
         <div className="page-header-left">
-          <h1>Equipment Management</h1>
+          <h1>Instrument Registry</h1>
           <p className="page-subtitle">
-            Monitor equipment status and manage field devices
+            Monitor calibration status and manage field instruments
           </p>
         </div>
         <div className="page-header-actions">
           <button
             className="btn-secondary btn-reload"
-            onClick={() => fetchEquipmentData(true)}
+            onClick={() => fetchInstruments(true)}
             disabled={isLoading}
           >
             <FaSync className={isLoading ? "spin" : ""} />
             <span>Refresh</span>
           </button>
           <button className="btn-create" onClick={() => setShowModal(true)}>
-            <FaPlus /> Add Equipment
+            <FaPlus /> Add Instrument
           </button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="stats-grid equipment-stats">
+      <div className="stats-grid instrument-stats">
         <div className="stat-card">
           <div className="stat-content">
             <div className="stat-info">
-              <p className="stat-label">Total Equipment</p>
+              <p className="stat-label">Total Instruments</p>
               <p className="stat-value">{stats.total}</p>
             </div>
             <div className="stat-icon stat-icon-blue">
-              <FaCogs />
+              <FaTools />
             </div>
           </div>
         </div>
@@ -269,9 +278,9 @@ export default function EquipmentControl() {
         <div className="stat-card">
           <div className="stat-content">
             <div className="stat-info">
-              <p className="stat-label">Under Maintenance</p>
+              <p className="stat-label">Calibration Due</p>
               <p className="stat-value stat-value-orange">
-                {stats.maintenance}
+                {stats.calibrationDue}
               </p>
             </div>
             <div className="stat-icon stat-icon-orange">
@@ -281,7 +290,7 @@ export default function EquipmentControl() {
           <div
             className="stat-bar stat-bar-orange"
             style={{
-              width: `${stats.total ? (stats.maintenance / stats.total) * 100 : 0}%`,
+              width: `${stats.total ? (stats.calibrationDue / stats.total) * 100 : 0}%`,
             }}
           />
         </div>
@@ -289,8 +298,8 @@ export default function EquipmentControl() {
         <div className="stat-card">
           <div className="stat-content">
             <div className="stat-info">
-              <p className="stat-label">Inactive / Offline</p>
-              <p className="stat-value stat-value-red">{stats.inactive}</p>
+              <p className="stat-label">Faulty / Inactive</p>
+              <p className="stat-value stat-value-red">{stats.faulty}</p>
             </div>
             <div className="stat-icon stat-icon-red">
               <FaTimesCircle />
@@ -299,7 +308,7 @@ export default function EquipmentControl() {
           <div
             className="stat-bar stat-bar-red"
             style={{
-              width: `${stats.total ? (stats.inactive / stats.total) * 100 : 0}%`,
+              width: `${stats.total ? (stats.faulty / stats.total) * 100 : 0}%`,
             }}
           />
         </div>
@@ -312,7 +321,7 @@ export default function EquipmentControl() {
             <FaSearch className="search-icon" />
             <input
               type="text"
-              placeholder="Search by name, serial number, or location..."
+              placeholder="Search by name, Tag ID, or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -335,8 +344,8 @@ export default function EquipmentControl() {
               >
                 <option value="">All Statuses</option>
                 <option value="Active">Active</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Inactive">Inactive</option>
+                <option value="Calibration Due">Calibration Due</option>
+                <option value="Faulty">Faulty</option>
               </select>
             </div>
 
@@ -346,11 +355,10 @@ export default function EquipmentControl() {
               onChange={(e) => setTypeFilter(e.target.value)}
             >
               <option value="">All Types</option>
-              <option value="Pump">Pump</option>
-              <option value="Valve">Valve</option>
-              <option value="Sensor">Sensor</option>
-              <option value="Compressor">Compressor</option>
-              <option value="Motor">Motor</option>
+              <option value="Pressure Transmitter">Pressure Transmitter</option>
+              <option value="Flow Meter">Flow Meter</option>
+              <option value="Temperature Sensor">Temperature Sensor</option>
+              <option value="Level Transmitter">Level Transmitter</option>
             </select>
 
             {hasActiveFilters && (
@@ -363,8 +371,8 @@ export default function EquipmentControl() {
 
         {hasActiveFilters && (
           <div className="active-filters-info">
-            Showing {equipment.length} result
-            {equipment.length !== 1 ? "s" : ""}
+            Showing {instruments.length} result
+            {instruments.length !== 1 ? "s" : ""}
             {searchQuery && (
               <span className="filter-tag">Search: "{searchQuery}"</span>
             )}
@@ -384,35 +392,34 @@ export default function EquipmentControl() {
           <div className="loading-spinner">
             <FaSync className="spin" />
           </div>
-          <p>Loading equipment data...</p>
+          <p>Loading instruments...</p>
         </div>
       ) : (
         <>
           <div className="table-container">
-            <table className="data-table equipment-table">
+            <table className="data-table instrument-table">
               <thead>
                 <tr>
-                  <th>EQUIPMENT ID</th>
-                  <th>EQUIPMENT</th>
-                  <th>SERIAL NUMBER</th>
-                  <th>MANUFACTURER</th>
-                  <th>INSTALL DATE</th>
+                  <th>TAG ID</th>
+                  <th>INSTRUMENT</th>
                   <th>LOCATION</th>
+                  <th>MANUFACTURER</th>
+                  <th>LAST CALIBRATION</th>
                   <th>STATUS</th>
                   <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedEquipment.length === 0 ? (
+                {paginatedInstruments.length === 0 ? (
                   <tr>
-                    <td colSpan="8">
+                    <td colSpan="7">
                       <div className="empty-state">
-                        <FaCogs className="empty-icon" />
-                        <h3>No Equipment Found</h3>
+                        <FaTools className="empty-icon" />
+                        <h3>No Instruments Found</h3>
                         <p>
                           {hasActiveFilters
                             ? "Try adjusting your search or filter criteria"
-                            : "Start by adding your first equipment"}
+                            : "Start by adding your first instrument"}
                         </p>
                         {hasActiveFilters ? (
                           <button
@@ -426,71 +433,82 @@ export default function EquipmentControl() {
                             className="btn-create"
                             onClick={() => setShowModal(true)}
                           >
-                            <FaPlus /> Add Equipment
+                            <FaPlus /> Add Instrument
                           </button>
                         )}
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  paginatedEquipment.map((item) => (
-                    <tr key={item.id || item._id} className="equipment-row">
+                  paginatedInstruments.map((instrument) => (
+                    <tr
+                      key={instrument.id || instrument._id}
+                      className="instrument-row"
+                    >
                       <td>
                         <span className="tag-id">
-                          {(item.id || item._id)?.substring(0, 8)}
+                          {instrument.tagId ||
+                            (instrument.id || instrument._id)?.substring(0, 8)}
                         </span>
                       </td>
                       <td>
-                        <div className="equipment-info-cell">
-                          <div className="equipment-type-icon">
-                            {getTypeIcon(item.type)}
+                        <div className="instrument-info">
+                          <div className="instrument-type-icon">
+                            {getTypeIcon(
+                              instrument.type || instrument.instrumentType,
+                            )}
                           </div>
-                          <div className="equipment-details-cell">
-                            <span className="equipment-name-text">
-                              {item.name || "Unknown"}
+                          <div className="instrument-details">
+                            <span className="instrument-name">
+                              {instrument.name || instrument.type || "Unknown"}
                             </span>
-                            <span className="equipment-type-text">
-                              {item.type || "-"}
+                            <span className="instrument-type">
+                              {instrument.type ||
+                                instrument.instrumentType ||
+                                "-"}
                             </span>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span className="serial-text">
-                          {item.serial || "-"}
+                        <span className="location-text">
+                          {instrument.location || "-"}
                         </span>
                       </td>
                       <td>
                         <div className="manufacturer-info">
                           <span className="manufacturer-name">
-                            {item.manufacturer || "-"}
+                            {instrument.manufacturer || "-"}
                           </span>
-                          {item.model && (
-                            <span className="model-number">{item.model}</span>
+                          {instrument.model && (
+                            <span className="model-number">
+                              {instrument.model}
+                            </span>
                           )}
                         </div>
                       </td>
                       <td>
-                        <div className="install-date-info">
+                        <div className="calibration-info">
                           <FaCalendarAlt className="calendar-icon" />
                           <span>
-                            {item.createdAt
-                              ? new Date(item.createdAt).toLocaleDateString()
-                              : "-"}
+                            {instrument.lastCalibrated
+                              ? new Date(
+                                  instrument.lastCalibrated,
+                                ).toLocaleDateString()
+                              : instrument.updatedAt
+                                ? new Date(
+                                    instrument.updatedAt,
+                                  ).toLocaleDateString()
+                                : "-"}
                           </span>
                         </div>
                       </td>
                       <td>
-                        <span className="location-text">
-                          {item.location || "-"}
-                        </span>
-                      </td>
-                      <td>
                         <span
-                          className={`badge badge-with-icon ${getStatusClass(item.status)}`}
+                          className={`badge badge-with-icon ${getStatusClass(instrument.status)}`}
                         >
-                          {getStatusIcon(item.status)}
-                          {item.status || "N/A"}
+                          {getStatusIcon(instrument.status)}
+                          {instrument.status || "N/A"}
                         </span>
                       </td>
                       <td>
@@ -499,7 +517,9 @@ export default function EquipmentControl() {
                             className="btn-icon btn-view"
                             title="View Details"
                             onClick={() =>
-                              navigate(`/app/equipment/${item.id || item._id}`)
+                              navigate(
+                                `/app/instrument/${instrument.id || instrument._id || instrument.tagId}`,
+                              )
                             }
                           >
                             <FaEye />
@@ -508,7 +528,9 @@ export default function EquipmentControl() {
                             className="btn-icon btn-edit"
                             title="Edit"
                             onClick={() =>
-                              navigate(`/app/equipment/${item.id || item._id}`)
+                              navigate(
+                                `/app/instrument/${instrument.id || instrument._id || instrument.tagId}`,
+                              )
                             }
                           >
                             <FaEdit />
@@ -516,7 +538,7 @@ export default function EquipmentControl() {
                           <button
                             className="btn-icon btn-delete"
                             title="Delete"
-                            onClick={() => handleDeleteClick(item)}
+                            onClick={() => handleDeleteClick(instrument)}
                           >
                             <FaTrash />
                           </button>
@@ -534,8 +556,8 @@ export default function EquipmentControl() {
             <div className="pagination">
               <div className="pagination-info">
                 Showing {(currentPage - 1) * itemsPerPage + 1} -{" "}
-                {Math.min(currentPage * itemsPerPage, equipment.length)} of{" "}
-                {equipment.length} equipment
+                {Math.min(currentPage * itemsPerPage, instruments.length)} of{" "}
+                {instruments.length} instruments
               </div>
               <div className="pagination-controls">
                 <button
@@ -578,7 +600,7 @@ export default function EquipmentControl() {
         </>
       )}
 
-      {/* Add New Equipment Modal */}
+      {/* Add/Edit Instrument Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={handleCancel}>
           <div
@@ -587,9 +609,9 @@ export default function EquipmentControl() {
           >
             <div className="modal-header">
               <div>
-                <h2>Add New Equipment</h2>
+                <h2>Register New Instrument</h2>
                 <p className="modal-subtitle">
-                  Add a new equipment to the tracking system
+                  Add a new instrument to the registry
                 </p>
               </div>
               <button className="modal-close" onClick={handleCancel}>
@@ -600,20 +622,20 @@ export default function EquipmentControl() {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="form-columns">
-                  {/* General Information Column */}
+                  {/* Basic Information Column */}
                   <div className="form-column">
-                    <h3 className="column-title">General Information</h3>
+                    <h3 className="column-title">Basic Information</h3>
 
                     <div className="form-group">
                       <label>
-                        Equipment Name <span className="required">*</span>
+                        Tag ID <span className="required">*</span>
                       </label>
                       <input
                         type="text"
-                        name="equipmentName"
+                        name="tagId"
                         className="form-input"
-                        placeholder="Enter equipment name"
-                        value={formData.equipmentName}
+                        placeholder="e.g., PT-1001"
+                        value={formData.tagId}
                         onChange={handleInputChange}
                         required
                       />
@@ -621,28 +643,57 @@ export default function EquipmentControl() {
 
                     <div className="form-group">
                       <label>
-                        Equipment Type <span className="required">*</span>
+                        Instrument Type <span className="required">*</span>
                       </label>
                       <select
-                        name="equipmentType"
+                        name="instrumentType"
                         className="form-select"
-                        value={formData.equipmentType}
+                        value={formData.instrumentType}
                         onChange={handleInputChange}
                         required
                       >
-                        <option value="">Select type</option>
-                        <option value="Pump">Pump</option>
-                        <option value="Valve">Valve</option>
-                        <option value="Sensor">Sensor</option>
-                        <option value="Compressor">Compressor</option>
-                        <option value="Motor">Motor</option>
+                        <option value="">Select Type</option>
+                        <option value="Pressure Transmitter">
+                          Pressure Transmitter
+                        </option>
+                        <option value="Flow Meter">Flow Meter</option>
+                        <option value="Temperature Sensor">
+                          Temperature Sensor
+                        </option>
+                        <option value="Level Transmitter">
+                          Level Transmitter
+                        </option>
+                        <option value="Control Valve">Control Valve</option>
+                        <option value="Safety Valve">Safety Valve</option>
                       </select>
                     </div>
 
                     <div className="form-group">
-                      <label>
-                        Serial Number <span className="required">*</span>
-                      </label>
+                      <label>Manufacturer</label>
+                      <input
+                        type="text"
+                        name="manufacturer"
+                        className="form-input"
+                        placeholder="e.g., Emerson, Siemens"
+                        value={formData.manufacturer}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Model Number</label>
+                      <input
+                        type="text"
+                        name="modelNumber"
+                        className="form-input"
+                        placeholder="e.g., 3051S"
+                        value={formData.modelNumber}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Serial Number</label>
                       <input
                         type="text"
                         name="serialNumber"
@@ -650,120 +701,112 @@ export default function EquipmentControl() {
                         placeholder="Enter serial number"
                         value={formData.serialNumber}
                         onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Model</label>
-                      <input
-                        type="text"
-                        name="model"
-                        className="form-input"
-                        placeholder="Enter model"
-                        value={formData.model}
-                        onChange={handleInputChange}
                       />
                     </div>
 
                     <div className="form-group">
                       <label>
-                        Manufacturer <span className="required">*</span>
+                        Location <span className="required">*</span>
                       </label>
                       <input
                         type="text"
-                        name="manufacturer"
+                        name="location"
                         className="form-input"
-                        placeholder="e.g. Siemens, ABB, GE"
-                        value={formData.manufacturer}
+                        placeholder="e.g., Platform A, Well 3"
+                        value={formData.location}
                         onChange={handleInputChange}
                         required
                       />
                     </div>
                   </div>
 
-                  {/* Status & Location Column */}
+                  {/* Calibration & Specs Column */}
                   <div className="form-column">
-                    <h3 className="column-title">Status & Location</h3>
+                    <h3 className="column-title">
+                      Calibration & Specifications
+                    </h3>
 
                     <div className="form-group">
-                      <label>
-                        Equipment Location <span className="required">*</span>
-                      </label>
-                      <select
-                        name="location"
-                        className="form-select"
-                        value={formData.location}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">Select location</option>
-                        <option value="Platform X1">Platform X1</option>
-                        <option value="Platform Y2">Platform Y2</option>
-                        <option value="Platform Z3">Platform Z3</option>
-                        <option value="Well Site A">Well Site A</option>
-                        <option value="Well Site B">Well Site B</option>
-                        <option value="Pipeline B2">Pipeline B2</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>
-                        Installation Date <span className="required">*</span>
-                      </label>
+                      <label>Installation Date</label>
                       <input
                         type="date"
-                        name="installDate"
+                        name="installationDate"
                         className="form-input"
-                        value={formData.installDate}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>
-                        Current Status <span className="required">*</span>
-                      </label>
-                      <select
-                        name="currentStatus"
-                        className="form-select"
-                        value={formData.currentStatus}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">Select status</option>
-                        <option value="Active">Active</option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Inactive">Inactive</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Technical Specification</label>
-                      <textarea
-                        name="technicalSpec"
-                        className="form-textarea"
-                        placeholder="Enter technical specification, materials, temperature, ductility, resistance, etc."
-                        rows="3"
-                        value={formData.technicalSpec}
+                        value={formData.installationDate}
                         onChange={handleInputChange}
                       />
                     </div>
 
                     <div className="form-group">
-                      <label className="checkbox-label">
+                      <label>Last Calibration Date</label>
+                      <input
+                        type="date"
+                        name="lastCalibrationDate"
+                        className="form-input"
+                        value={formData.lastCalibrationDate}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Calibration Interval (months)</label>
+                      <input
+                        type="number"
+                        name="calibrationInterval"
+                        className="form-input"
+                        placeholder="e.g., 12"
+                        min="1"
+                        value={formData.calibrationInterval}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Range Min</label>
                         <input
-                          type="checkbox"
-                          name="needsCalibration"
-                          checked={formData.needsCalibration}
+                          type="number"
+                          name="rangeMin"
+                          className="form-input"
+                          placeholder="0"
+                          value={formData.rangeMin}
                           onChange={handleInputChange}
                         />
-                        <span>
-                          Equipment Needs Initial Calibration and Quality
-                          Verification
-                        </span>
-                      </label>
+                      </div>
+                      <div className="form-group">
+                        <label>Range Max</label>
+                        <input
+                          type="number"
+                          name="rangeMax"
+                          className="form-input"
+                          placeholder="100"
+                          value={formData.rangeMax}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Unit</label>
+                        <input
+                          type="text"
+                          name="unit"
+                          className="form-input"
+                          placeholder="PSI"
+                          value={formData.unit}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Description / Notes</label>
+                      <textarea
+                        name="description"
+                        className="form-textarea"
+                        placeholder="Additional notes about this instrument..."
+                        rows="3"
+                        value={formData.description}
+                        onChange={handleInputChange}
+                      />
                     </div>
                   </div>
                 </div>
@@ -778,7 +821,7 @@ export default function EquipmentControl() {
                   Cancel
                 </button>
                 <button type="submit" className="btn-submit">
-                  <FaPlus /> Save Equipment
+                  <FaPlus /> Save Instrument
                 </button>
               </div>
             </form>
@@ -799,11 +842,13 @@ export default function EquipmentControl() {
             <div className="delete-modal-icon">
               <FaTrash />
             </div>
-            <h2>Delete Equipment</h2>
+            <h2>Delete Instrument</h2>
             <p>
               Are you sure you want to delete{" "}
-              <strong>{deleteTarget?.name || "this equipment"}</strong>? This
-              action cannot be undone.
+              <strong>
+                {deleteTarget?.name || deleteTarget?.tagId || "this instrument"}
+              </strong>
+              ? This action cannot be undone.
             </p>
             <div className="modal-footer">
               <button

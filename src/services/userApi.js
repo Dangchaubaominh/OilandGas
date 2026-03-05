@@ -1,11 +1,11 @@
-// src/api/userApi.js
+// src/services/userApi.js
 import axiosClient from "./AxiosClient";
 
 const userApi = {
   // 1. Lấy tất cả active users
-  getAllUsers() {
+  getAllUsers(params = {}) {
     const url = "api/users";
-    return axiosClient.get(url);
+    return axiosClient.get(url, { params });
   },
 
   // 2. Tạo mới user
@@ -15,15 +15,15 @@ const userApi = {
   },
 
   // 3. Lấy tất cả user đã bị xóa (deleted users)
-  getDeletedUsers() {
+  getDeletedUsers(params = {}) {
     const url = "api/users/deleted";
-    return axiosClient.get(url);
+    return axiosClient.get(url, { params });
   },
 
   // 4. Lấy tất cả user (bao gồm cả active và inactive)
-  getAllUsersMixed() {
+  getAllUsersMixed(params = {}) {
     const url = "api/users/all";
-    return axiosClient.get(url);
+    return axiosClient.get(url, { params });
   },
 
   // 5. Xóa mềm user theo ID (Soft delete)
@@ -45,7 +45,6 @@ const userApi = {
   },
 
   // 8. Lấy thông tin cá nhân hiện tại
-  
 };
 
 export default userApi;

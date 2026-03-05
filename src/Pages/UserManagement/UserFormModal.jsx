@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { userSchema } from "../../schemas/userSchema";
@@ -33,6 +33,7 @@ export default function UserFormModal({
 
   const currentStatus = watch("status");
 
+  // Reset form khi Modal mở ra hoặc khi defaultValues thay đổi
   useEffect(() => {
     if (isOpen && defaultValues) {
       reset(defaultValues);
@@ -65,6 +66,8 @@ export default function UserFormModal({
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="modal-body">
+            
+            {/* Full Name */}
             <div className="form-group">
               <label>Full Name *</label>
               <input
@@ -76,43 +79,31 @@ export default function UserFormModal({
                 style={{ borderColor: errors.name ? "#ef4444" : "" }}
               />
               {errors.name && (
-                <span
-                  style={{
-                    color: "#ef4444",
-                    fontSize: "12px",
-                    marginTop: "4px",
-                    display: "block",
-                  }}
-                >
+                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
                   {errors.name.message}
                 </span>
               )}
             </div>
 
+            {/* Phone Number */}
             <div className="form-group">
               <label>Phone Number *</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="+1234567890"
+                placeholder="+84 or 09..."
                 {...register("phone")}
                 disabled={isSaving}
                 style={{ borderColor: errors.phone ? "#ef4444" : "" }}
               />
               {errors.phone && (
-                <span
-                  style={{
-                    color: "#ef4444",
-                    fontSize: "12px",
-                    marginTop: "4px",
-                    display: "block",
-                  }}
-                >
+                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
                   {errors.phone.message}
                 </span>
               )}
             </div>
 
+            {/* Department */}
             <div className="form-group">
               <label>Department *</label>
               <input
@@ -124,43 +115,35 @@ export default function UserFormModal({
                 style={{ borderColor: errors.department ? "#ef4444" : "" }}
               />
               {errors.department && (
-                <span
-                  style={{
-                    color: "#ef4444",
-                    fontSize: "12px",
-                    marginTop: "4px",
-                    display: "block",
-                  }}
-                >
+                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
                   {errors.department.message}
                 </span>
               )}
             </div>
 
+            {/* Email Address */}
             <div className="form-group">
               <label>Email Address *</label>
               <input
                 type="email"
                 className="form-input"
-                placeholder="user@ogsys.com"
+                placeholder="user@example.com"
                 {...register("email")}
-                disabled={isSaving || isEditMode}
-                style={{ borderColor: errors.email ? "#ef4444" : "" }}
+                disabled={isSaving || isEditMode} // Không cho đổi Email khi Edit
+                style={{ 
+                  borderColor: errors.email ? "#ef4444" : "",
+                  backgroundColor: isEditMode ? "rgba(255,255,255,0.05)" : "transparent",
+                  color: isEditMode ? "#94a3b8" : "inherit"
+                }}
               />
               {errors.email && (
-                <span
-                  style={{
-                    color: "#ef4444",
-                    fontSize: "12px",
-                    marginTop: "4px",
-                    display: "block",
-                  }}
-                >
+                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
                   {errors.email.message}
                 </span>
               )}
             </div>
 
+            {/* Assign Role */}
             <div className="form-group">
               <label>Assign Role *</label>
               <select
@@ -175,29 +158,17 @@ export default function UserFormModal({
                 <option value="Engineer">Engineer</option>
               </select>
               {errors.role && (
-                <span
-                  style={{
-                    color: "#ef4444",
-                    fontSize: "12px",
-                    marginTop: "4px",
-                    display: "block",
-                  }}
-                >
+                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
                   {errors.role.message}
                 </span>
               )}
             </div>
 
+            {/* Account Status Toggle */}
             <div className="form-group">
               <label>Account Status</label>
               <div className="toggle-field">
-                <span
-                  className={
-                    currentStatus === "inactive"
-                      ? "toggle-label active"
-                      : "toggle-label"
-                  }
-                >
+                <span className={currentStatus === "inactive" ? "toggle-label active" : "toggle-label"}>
                   Inactive
                 </span>
                 <label className="toggle-switch">
@@ -205,33 +176,21 @@ export default function UserFormModal({
                     type="checkbox"
                     checked={currentStatus === "active"}
                     onChange={(e) =>
-                      setValue(
-                        "status",
-                        e.target.checked ? "active" : "inactive",
-                        { shouldValidate: true },
-                      )
+                      setValue("status", e.target.checked ? "active" : "inactive", { shouldValidate: true })
                     }
                     disabled={isSaving}
                   />
                   <span className="toggle-slider"></span>
                 </label>
-                <span
-                  className={
-                    currentStatus === "active"
-                      ? "toggle-label active"
-                      : "toggle-label"
-                  }
-                >
+                <span className={currentStatus === "active" ? "toggle-label active" : "toggle-label"}>
                   Active
                 </span>
               </div>
             </div>
           </div>
 
-          <div
-            className="modal-footer"
-            style={{ display: "flex", justifyContent: "space-between" }}
-          >
+          {/* Footer Actions */}
+          <div className="modal-footer" style={{ display: "flex", justifyContent: "space-between" }}>
             <button
               type="button"
               className="btn-cancel"
@@ -249,7 +208,7 @@ export default function UserFormModal({
                 transition: "all 0.2s",
               }}
             >
-              Hủy
+              Cancel
             </button>
             <button
               type="submit"

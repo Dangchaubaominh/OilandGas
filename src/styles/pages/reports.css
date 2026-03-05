@@ -1,0 +1,69 @@
+/* ========== REPORTS PAGE ========== */
+.reports-page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.reports-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.date-range-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 8px 16px;
+}
+
+.date-separator {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.datetime-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.time-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.severity-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.severity-critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.severity-warning {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+}
+
+.severity-low {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.actions-cell {
+  max-width: 300px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}

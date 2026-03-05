@@ -3,8 +3,10 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./routers/router.jsx";
 import { Bounce, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 
-function App() {
+function AppContent() {
+  const { theme } = useTheme();
   return (
     <>
       <RouterProvider router={router} />
@@ -18,10 +20,18 @@ function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme={theme}
         transition={Bounce}
       />
     </>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

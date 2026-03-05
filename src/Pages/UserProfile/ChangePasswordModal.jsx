@@ -2,12 +2,15 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { changePasswordSchema } from "../../schemas/changePasswordSchema";
-import { FaLock, FaTimes } from "react-icons/fa";
+import { FaLock, FaTimes, FaEye, FaEyeSlash } from "react-icons/fa";
 import profileApi from "../../services/profileApi";
 import { showToast } from "../../utils/toastHandler";
 
 export default function ChangePasswordModal({ isOpen, onClose }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -17,9 +20,9 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
   } = useForm({
     resolver: yupResolver(changePasswordSchema),
     defaultValues: {
-      oldPassword: "",
+      currentPassword: "",
       newPassword: "",
-      confirmPassword: "",
+      confirmNewPassword: "",
     },
   });
 
@@ -35,9 +38,9 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
 
     try {
       const payload = {
-        oldPassword: data.oldPassword,
+        currentPassword: data.currentPassword,
         newPassword: data.newPassword,
-        confirmPassword: data.confirmPassword,
+        confirmNewPassword: data.confirmNewPassword,
       };
 
       const response = await profileApi.getChangePassword(payload);
@@ -108,19 +111,41 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   }}
                 />
                 <input
-                  type="password"
-                  {...register("oldPassword")}
+                  type={showCurrentPassword ? "text" : "password"}
+                  {...register("currentPassword")}
                   autoComplete="off"
                   className="form-input"
                   placeholder="Enter current password"
                   disabled={isSubmitting}
                   style={{
                     paddingLeft: "36px",
-                    borderColor: errors.oldPassword ? "#ef4444" : "",
+                    paddingRight: "40px",
+                    borderColor: errors.currentPassword ? "#ef4444" : "",
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#64748b",
+                    fontSize: "14px",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {showCurrentPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
               </div>
-              {errors.oldPassword && (
+              {errors.currentPassword && (
                 <span
                   style={{
                     color: "#ef4444",
@@ -129,7 +154,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                     display: "block",
                   }}
                 >
-                  {errors.oldPassword.message}
+                  {errors.currentPassword.message}
                 </span>
               )}
             </div>
@@ -148,7 +173,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   }}
                 />
                 <input
-                  type="password"
+                  type={showNewPassword ? "text" : "password"}
                   {...register("newPassword")}
                   autoComplete="off"
                   className="form-input"
@@ -156,9 +181,31 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   disabled={isSubmitting}
                   style={{
                     paddingLeft: "36px",
+                    paddingRight: "40px",
                     borderColor: errors.newPassword ? "#ef4444" : "",
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#64748b",
+                    fontSize: "14px",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
               </div>
               {errors.newPassword && (
                 <span
@@ -188,19 +235,41 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   }}
                 />
                 <input
-                  type="password"
-                  {...register("confirmPassword")}
+                  type={showConfirmPassword ? "text" : "password"}
+                  {...register("confirmNewPassword")}
                   autoComplete="off"
                   className="form-input"
                   placeholder="Re-enter new password"
                   disabled={isSubmitting}
                   style={{
                     paddingLeft: "36px",
-                    borderColor: errors.confirmPassword ? "#ef4444" : "",
+                    paddingRight: "40px",
+                    borderColor: errors.confirmNewPassword ? "#ef4444" : "",
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#64748b",
+                    fontSize: "14px",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
               </div>
-              {errors.confirmPassword && (
+              {errors.confirmNewPassword && (
                 <span
                   style={{
                     color: "#ef4444",
@@ -209,7 +278,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                     display: "block",
                   }}
                 >
-                  {errors.confirmPassword.message}
+                  {errors.confirmNewPassword.message}
                 </span>
               )}
             </div>

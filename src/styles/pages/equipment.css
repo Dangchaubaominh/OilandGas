@@ -1,0 +1,323 @@
+/* ========== EQUIPMENT DETAIL PAGE ========== */
+.equipment-detail-page {
+  padding: 24px;
+}
+
+.equipment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.equipment-title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.equipment-title-section h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.equipment-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-view-diagrams {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-diagrams:hover {
+  background: var(--hover-subtle);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.btn-order-report {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-order-report:hover {
+  background: var(--hover-subtle);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.equipment-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 28px;
+}
+
+@media (max-width: 1200px) {
+  .equipment-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.equipment-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 28px;
+}
+
+.equipment-card:last-child {
+  margin-bottom: 0;
+}
+
+.equipment-card h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.linked-documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.document-item:hover {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.document-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.document-icon-blue {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.document-icon-green {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.document-icon-orange {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+}
+
+.document-info {
+  flex: 1;
+}
+
+.document-name {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.document-size {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.condition-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.condition-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.condition-item label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.condition-item span {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.badge-warranty-active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+  width: fit-content;
+}
+
+.performance-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.metric-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.metric-box label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.metric-box .metric-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.alert-count-info {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.alert-info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.no-alerts {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ========== EQUIPMENT MANAGEMENT (LIST) PAGE ========== */
+.equipment-stats {
+  margin-bottom: 28px;
+}
+
+.equipment-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.equipment-type-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.equipment-details-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.equipment-name-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.equipment-type-text {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.serial-text {
+  font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.install-date-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.equipment-table {
+  min-width: 900px;
+}
+
+.equipment-row {
+  transition: all 0.15s ease;
+}
+
+.equipment-row:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
