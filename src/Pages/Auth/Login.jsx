@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+
+import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { loginSchema } from "../../schemas/loginSchema";
@@ -163,12 +164,12 @@ const Login = () => {
                   Remember me
                 </span>
               </label>
-              <a
-                href="#"
+              <Link
+                to="/forgot-password"
                 className="text-[#3b82f6] text-xs hover:underline hover:text-blue-400"
               >
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             {/* Sign In Button */}

@@ -46,9 +46,9 @@ export default function UserManagement() {
         const params = {
           page,
           limit: pagination.limit,
-          ...(searchQuery.trim() && { search: searchQuery.trim() }),
-          ...(roleFilter !== "all" && { role: roleFilter }),
-          ...(statusFilter !== "all" && { status: statusFilter }),
+          search: searchQuery.trim() || undefined,
+          role: roleFilter !== "all" ? roleFilter : undefined,
+          status: statusFilter !== "all" ? statusFilter : undefined,
         };
 
         let response;
@@ -63,18 +63,10 @@ export default function UserManagement() {
         const resData = response.data?.data || response.data || response;
 
         // Xử lý dữ liệu trả về theo cấu trúc Backend mới
-        const usersList =
-          resData.users || (Array.isArray(resData) ? resData : []);
-        setUsers(usersList);
+        setUsers(resData.users || (Array.isArray(resData) ? resData : []));
 
-        // Đảm bảo pagination data được set chính xác từ backend
         if (resData.pagination) {
-          setPagination({
-            totalItems: resData.pagination.totalItems || 0,
-            totalPages: resData.pagination.totalPages || 1,
-            currentPage: resData.pagination.currentPage || page,
-            limit: resData.pagination.limit || pagination.limit,
-          });
+          setPagination(resData.pagination);
         }
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -83,7 +75,6 @@ export default function UserManagement() {
           "Failed to load users: " +
             (err.response?.data?.message || err.message),
         );
-        setUsers([]);
       } finally {
         setIsLoading(false);
       }

@@ -10,9 +10,10 @@ import Reports from "../Pages/Management/Reports";
 import Schedule from "../Pages/Management/Schedule";
 import Settings from "../Pages//Setting/Settings";
 import WarehouseInventory from "../Pages/Management/WarehouseInventory";
-import Simulator from "../Pages/Management/Simulator";
+import Simulator from "../Pages/Stimulator/Simulator";
 import EquipmentControl from "../Pages/Equipment/EquipmentControl";
 import Login from "../Pages/Auth/Login";
+import ForgotPassword from "../Pages/Auth/ForgotPassword";
 import Profile from "../Pages/UserProfile/Profile";
 
 // ... Import thêm các trang khác khi cần
@@ -26,6 +27,10 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <Login />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
   },
 
   // --- NHÓM PRIVATE (Yêu cầu đăng nhập mới vào được) ---

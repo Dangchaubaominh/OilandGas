@@ -1,16 +1,7 @@
 import { useState } from "react";
-import {
-  FaShieldAlt,
-  FaCog,
-  FaTools,
-  FaPalette,
-  FaSun,
-  FaMoon,
-} from "react-icons/fa";
-import { useTheme } from "../../contexts/ThemeContext";
+import { FaShieldAlt, FaCog, FaTools } from "react-icons/fa";
 
 export default function Settings() {
-  const { theme, toggleTheme } = useTheme();
   const [formData, setFormData] = useState({
     securityPolicy: "Default Policy",
     sessionTimeout: "30 - minutes",
@@ -219,46 +210,6 @@ export default function Settings() {
                     })
                   }
                 />
-              </div>
-            </div>
-          </div>
-
-          {/* Appearance Settings */}
-          <div className="settings-card">
-            <div className="card-header">
-              <div className="card-icon card-icon-purple">
-                <FaPalette />
-              </div>
-              <div className="card-header-text">
-                <h3>Appearance</h3>
-                <p>Display and theme preferences</p>
-              </div>
-            </div>
-            <div className="card-body">
-              <div className="form-group">
-                <label>Theme Mode</label>
-                <div className="theme-toggle-container">
-                  <div className="theme-toggle-option">
-                    <FaSun
-                      className={`theme-icon ${theme === "light" ? "active" : ""}`}
-                    />
-                    <span>Light</span>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={theme === "dark"}
-                      onChange={toggleTheme}
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                  <div className="theme-toggle-option">
-                    <FaMoon
-                      className={`theme-icon ${theme === "dark" ? "active" : ""}`}
-                    />
-                    <span>Dark</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

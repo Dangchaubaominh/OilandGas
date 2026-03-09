@@ -1,12 +1,14 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaBell, FaChevronDown } from "react-icons/fa";
+import { FaBell, FaSun, FaMoon } from "react-icons/fa";
 import useAuthStore from "../store/useAuthStore";
+import { useTheme } from "../contexts/ThemeContext";
 
 export function TopBar() {
   // Lấy thông tin user từ localStorage (nếu có) mà chúng ta đã lưu ở trang Login
   // Nếu chưa có (khi test), sẽ để mặc định là "John Davis"
   const userInfo = useAuthStore((state) => state.user) || { name: "Guest" };
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const handleProfileClick = () => {
     navigate("/app/profile");
@@ -19,6 +21,21 @@ export function TopBar() {
 
       {/* --- CỘT PHẢI: Thông báo & Avatar --- */}
       <div className="flex items-center gap-6">
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+          title={
+            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+          }
+        >
+          {theme === "dark" ? (
+            <FaSun className="text-xl" />
+          ) : (
+            <FaMoon className="text-xl" />
+          )}
+        </button>
+
         {/* Nút chuông thông báo */}
         <button className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">
           <FaBell className="text-xl" />
