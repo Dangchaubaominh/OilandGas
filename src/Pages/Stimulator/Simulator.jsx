@@ -270,6 +270,7 @@ export default function Simulator() {
             <Local3DViewer
               modelPath="/models/OilandGasStation.glb"
               onPartSelect={handlePartClick}
+              selectedPart={selectedPart}
             />
           </div>
         </div>

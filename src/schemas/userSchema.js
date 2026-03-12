@@ -1,5 +1,6 @@
 import * as yup from "yup";
 
+// Base schema without password - used for dynamic validation
 export const userSchema = yup.object().shape({
   name: yup
     .string()
@@ -10,9 +11,21 @@ export const userSchema = yup.object().shape({
   email: yup
     .string()
     .trim()
-    .lowercase() // Tự động chuyển về chữ thường để tránh lỗi duplicate do chữ hoa
+    .lowercase()
     .email("Invalid email format")
     .required("Email is required"),
+
+  // Password validation will be handled conditionally
+  password: yup
+    .string()
+    .test(
+      "password-min",
+      "Password must be at least 6 characters",
+      function (value) {
+        if (!value || value.length === 0) return true; // Empty is ok (required check is separate)
+        return value.length >= 6;
+      },
+    ),
 
   phone: yup
     .string()
@@ -32,3 +45,14 @@ export const userSchema = yup.object().shape({
     .oneOf(["active", "inactive", "locked"], "Invalid status")
     .default("active"),
 });
+
+// Schema for CREATE mode - password is required
+export const createUserSchema = userSchema.shape({
+  password: yup
+    .string()
+    .required("Password is required")
+    .min(6, "Password must be at least 6 characters"),
+});
+
+// Schema for EDIT mode - password is optional
+export const editUserSchema = userSchema;

@@ -4,6 +4,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { profileSchema } from "../../schemas/profileSchema";
 import profileApi from "../../services/profileApi";
 import ChangePasswordModal from "./ChangePasswordModal";
+import useAuthStore from "../../store/useAuthStore";
 import {
   FaUser,
   FaEnvelope,
@@ -11,6 +12,7 @@ import {
   FaLock,
   FaBuilding,
   FaCalendarAlt,
+  FaCamera, // Thêm icon camera nếu bạn muốn
 } from "react-icons/fa";
 import { showToast } from "../../utils/toastHandler";
 
@@ -19,6 +21,13 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  // 1. Thêm State cho Avatar
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Get updateUser function from auth store
+  const updateUser = useAuthStore((state) => state.updateUser);
 
   const {
     register,
@@ -61,18 +70,50 @@ export default function Profile() {
     fetchProfile();
   }, [reset]);
 
+  // 2. Hàm xử lý khi chọn file ảnh
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+
+      // Upload avatar immediately when selected
+      try {
+        const response = await profileApi.uploadAvatar(file);
+        const resData = response.data || response;
+
+        if (resData.success) {
+          showToast("success", "Avatar uploaded successfully!");
+          const newAvatarUrl = resData.data?.avatar_url;
+          setProfileData((prev) => ({
+            ...prev,
+            avatar_url: newAvatarUrl || prev.avatar_url,
+          }));
+          // Update auth store so Topbar reflects the change
+          if (newAvatarUrl) {
+            updateUser({ avatar_url: newAvatarUrl });
+          }
+          setSelectedFile(null);
+        } else {
+          showToast("error", "Avatar upload failed: " + resData.message);
+        }
+      } catch (error) {
+        console.error("Error uploading avatar:", error);
+        showToast("error", "An error occurred while uploading avatar.");
+      }
+    }
+  };
+
   const handleSaveChanges = async (data) => {
     setIsSaving(true);
 
     try {
-      const updatePayload = {
+      // Send profile data as regular JSON
+      const response = await profileApi.updateProfile({
         name: data.name,
-        email: data.email,
         phone: data.phone,
         department: data.department,
-      };
-
-      const response = await profileApi.updateProfile(updatePayload);
+      });
       const resData = response.data || response;
 
       if (resData.success) {
@@ -103,6 +144,9 @@ export default function Profile() {
         phone: profileData.phone || "",
         department: profileData.department || "",
       });
+      // 4. Xóa preview ảnh khi bấm Cancel
+      setAvatarPreview(null);
+      setSelectedFile(null);
     }
   };
 
@@ -175,11 +219,48 @@ export default function Profile() {
                 </span>
               </div>
 
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#2545b8] to-blue-400 flex items-center justify-center text-white font-bold text-3xl shadow-lg mb-4 mt-2">
-                {profileData?.email
-                  ? profileData.email.charAt(0).toUpperCase()
-                  : "U"}
+              {/* 5. Cập nhật giao diện khối Avatar ở đây */}
+              <div className="relative mb-4 mt-2 group">
+                <label htmlFor="avatar-upload" className="cursor-pointer">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-tr from-[#2545b8] to-blue-400 flex items-center justify-center text-white font-bold text-3xl shadow-lg transition-all duration-200 group-hover:ring-4 group-hover:ring-blue-500/30">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Avatar Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : profileData.avatar_url ? (
+                      <img
+                        src={profileData.avatar_url}
+                        alt="User Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : profileData?.email ? (
+                      profileData.email.charAt(0).toUpperCase()
+                    ) : (
+                      "U"
+                    )}
+                  </div>
+
+                  {/* Lớp phủ (overlay) hiển thị khi hover */}
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <span className="text-xs font-medium text-white">
+                      Upload
+                    </span>
+                  </div>
+                </label>
+
+                {/* Input file ẩn */}
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
               </div>
+              {/* Kết thúc khối Avatar */}
+
               <h2 className="text-lg font-semibold text-white">
                 {profileData.name}
               </h2>

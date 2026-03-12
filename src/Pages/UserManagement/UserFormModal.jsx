@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { userSchema } from "../../schemas/userSchema";
+import { createUserSchema, editUserSchema } from "../../schemas/userSchema";
 import { FaTimes, FaUserPlus, FaSave } from "react-icons/fa";
 
 export default function UserFormModal({
@@ -12,6 +12,12 @@ export default function UserFormModal({
   isSaving,
   defaultValues,
 }) {
+  // Select schema based on mode
+  const schema = useMemo(
+    () => (isEditMode ? editUserSchema : createUserSchema),
+    [isEditMode],
+  );
+
   const {
     register,
     handleSubmit,
@@ -20,10 +26,11 @@ export default function UserFormModal({
     watch,
     formState: { errors },
   } = useForm({
-    resolver: yupResolver(userSchema),
+    resolver: yupResolver(schema),
     defaultValues: {
       name: "",
       email: "",
+      password: "",
       phone: "",
       department: "",
       role: "",
@@ -66,7 +73,6 @@ export default function UserFormModal({
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="modal-body">
-            
             {/* Full Name */}
             <div className="form-group">
               <label>Full Name *</label>
@@ -79,8 +85,46 @@ export default function UserFormModal({
                 style={{ borderColor: errors.name ? "#ef4444" : "" }}
               />
               {errors.name && (
-                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                <span
+                  style={{
+                    color: "#ef4444",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    display: "block",
+                  }}
+                >
                   {errors.name.message}
+                </span>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className="form-group">
+              <label>
+                Password {isEditMode ? "(leave blank to keep current)" : "*"}
+              </label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder={
+                  isEditMode
+                    ? "Enter new password (optional)"
+                    : "Enter password"
+                }
+                {...register("password")}
+                disabled={isSaving}
+                style={{ borderColor: errors.password ? "#ef4444" : "" }}
+              />
+              {errors.password && (
+                <span
+                  style={{
+                    color: "#ef4444",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    display: "block",
+                  }}
+                >
+                  {errors.password.message}
                 </span>
               )}
             </div>
@@ -97,7 +141,14 @@ export default function UserFormModal({
                 style={{ borderColor: errors.phone ? "#ef4444" : "" }}
               />
               {errors.phone && (
-                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                <span
+                  style={{
+                    color: "#ef4444",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    display: "block",
+                  }}
+                >
                   {errors.phone.message}
                 </span>
               )}
@@ -115,7 +166,14 @@ export default function UserFormModal({
                 style={{ borderColor: errors.department ? "#ef4444" : "" }}
               />
               {errors.department && (
-                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                <span
+                  style={{
+                    color: "#ef4444",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    display: "block",
+                  }}
+                >
                   {errors.department.message}
                 </span>
               )}
@@ -130,14 +188,23 @@ export default function UserFormModal({
                 placeholder="user@example.com"
                 {...register("email")}
                 disabled={isSaving || isEditMode} // Không cho đổi Email khi Edit
-                style={{ 
+                style={{
                   borderColor: errors.email ? "#ef4444" : "",
-                  backgroundColor: isEditMode ? "rgba(255,255,255,0.05)" : "transparent",
-                  color: isEditMode ? "#94a3b8" : "inherit"
+                  backgroundColor: isEditMode
+                    ? "rgba(255,255,255,0.05)"
+                    : "transparent",
+                  color: isEditMode ? "#94a3b8" : "inherit",
                 }}
               />
               {errors.email && (
-                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                <span
+                  style={{
+                    color: "#ef4444",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    display: "block",
+                  }}
+                >
                   {errors.email.message}
                 </span>
               )}
@@ -153,12 +220,19 @@ export default function UserFormModal({
                 style={{ borderColor: errors.role ? "#ef4444" : "" }}
               >
                 <option value="">Select role</option>
-                <option value="Administrator">Administrator</option>
-                <option value="Supervisor">Supervisor</option>
-                <option value="Engineer">Engineer</option>
+                <option value="admin">Administrator</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="engineer">Engineer</option>
               </select>
               {errors.role && (
-                <span style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                <span
+                  style={{
+                    color: "#ef4444",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    display: "block",
+                  }}
+                >
                   {errors.role.message}
                 </span>
               )}
@@ -168,7 +242,13 @@ export default function UserFormModal({
             <div className="form-group">
               <label>Account Status</label>
               <div className="toggle-field">
-                <span className={currentStatus === "inactive" ? "toggle-label active" : "toggle-label"}>
+                <span
+                  className={
+                    currentStatus === "inactive"
+                      ? "toggle-label active"
+                      : "toggle-label"
+                  }
+                >
                   Inactive
                 </span>
                 <label className="toggle-switch">
@@ -176,13 +256,23 @@ export default function UserFormModal({
                     type="checkbox"
                     checked={currentStatus === "active"}
                     onChange={(e) =>
-                      setValue("status", e.target.checked ? "active" : "inactive", { shouldValidate: true })
+                      setValue(
+                        "status",
+                        e.target.checked ? "active" : "inactive",
+                        { shouldValidate: true },
+                      )
                     }
                     disabled={isSaving}
                   />
                   <span className="toggle-slider"></span>
                 </label>
-                <span className={currentStatus === "active" ? "toggle-label active" : "toggle-label"}>
+                <span
+                  className={
+                    currentStatus === "active"
+                      ? "toggle-label active"
+                      : "toggle-label"
+                  }
+                >
                   Active
                 </span>
               </div>
@@ -190,7 +280,10 @@ export default function UserFormModal({
           </div>
 
           {/* Footer Actions */}
-          <div className="modal-footer" style={{ display: "flex", justifyContent: "space-between" }}>
+          <div
+            className="modal-footer"
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
             <button
               type="button"
               className="btn-cancel"

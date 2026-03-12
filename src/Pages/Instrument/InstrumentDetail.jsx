@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaCube, FaFileExport, FaSync, FaClock, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
-import instrumentApi from "../../services/instrumentApi"; 
+import {
+  FaArrowLeft,
+  FaCube,
+  FaFileExport,
+  FaSync,
+  FaClock,
+  FaCheckCircle,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import instrumentApi from "../../services/instrumentApi";
 
 export default function InstrumentDetail() {
   const { id } = useParams();
@@ -15,20 +23,57 @@ export default function InstrumentDetail() {
 
   // --- MOCK DATA (Giữ tạm chờ Backend có API) ---
   const [equipment] = useState([
-    { id: 1, name: "Control Module CM-2826A", location: "Platform Z2, Sector 11A", status: "Active" },
-    { id: 2, name: "Pressure Transducer PT-947", location: "Adjacent to control node Z23", status: "Active" },
-    { id: 3, name: "Temperature Sensor TS-647", location: "Main pipeline junction Z14", status: "Active" }
+    {
+      id: 1,
+      name: "Control Module CM-2826A",
+      location: "Platform Z2, Sector 11A",
+      status: "Active",
+    },
+    {
+      id: 2,
+      name: "Pressure Transducer PT-947",
+      location: "Adjacent to control node Z23",
+      status: "Active",
+    },
+    {
+      id: 3,
+      name: "Temperature Sensor TS-647",
+      location: "Main pipeline junction Z14",
+      status: "Active",
+    },
   ]);
 
   const [maintenanceSchedule] = useState([
-    { date: "February 18, 2024", task: "Routine calibration and valve servicing", status: "Upcoming" },
-    { date: "February 16, 2024", task: "System Leak Testing", status: "Delayed" },
-    { date: "February 10, 2024", task: "Lubricate Valve Housing", status: "Completed" }
+    {
+      date: "February 18, 2024",
+      task: "Routine calibration and valve servicing",
+      status: "Upcoming",
+    },
+    {
+      date: "February 16, 2024",
+      task: "System Leak Testing",
+      status: "Delayed",
+    },
+    {
+      date: "February 10, 2024",
+      task: "Lubricate Valve Housing",
+      status: "Completed",
+    },
   ]);
 
   const [alerts] = useState([
-    { id: 1, message: "Slightly elevated RPM", time: "2 days ago", type: "warning" },
-    { id: 2, message: "Calibration overdue alert", time: "5 days ago", type: "error" }
+    {
+      id: 1,
+      message: "Slightly elevated RPM",
+      time: "2 days ago",
+      type: "warning",
+    },
+    {
+      id: 2,
+      message: "Calibration overdue alert",
+      time: "5 days ago",
+      type: "error",
+    },
   ]);
 
   // --- FETCH DATA ---
@@ -39,7 +84,7 @@ export default function InstrumentDetail() {
       // Gọi song song 2 API bằng Promise.allSettled
       const [detailRes, infoRes] = await Promise.allSettled([
         instrumentApi.getInstrumentDetail(id),
-        instrumentApi.getInstrument3DInfo(id)
+        instrumentApi.getInstrument3DInfo(id),
       ]);
 
       // Xử lý dữ liệu Chi tiết
@@ -68,15 +113,25 @@ export default function InstrumentDetail() {
   // --- HELPERS ---
   const formatDate = (dateString) => {
     if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      year: 'numeric', month: 'long', day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   const getStatusClass = (status) => {
     const lowerStatus = status?.toLowerCase() || "";
-    if (lowerStatus === "active" || lowerStatus === "operational") return "badge-active";
-    if (lowerStatus === "faulty") return "badge-faulty";
+    if (lowerStatus === "active" || lowerStatus === "operational")
+      return "badge-active";
+    if (lowerStatus === "maintenance" || lowerStatus === "calibration")
+      return "badge-maintenance";
+    if (
+      lowerStatus === "faulty" ||
+      lowerStatus === "inactive" ||
+      lowerStatus === "out-of-service"
+    )
+      return "badge-faulty";
     return "badge-warning";
   };
 
@@ -84,7 +139,15 @@ export default function InstrumentDetail() {
   if (isLoading) {
     return (
       <div style={{ textAlign: "center", padding: "100px", color: "#64748b" }}>
-        <div style={{ fontSize: "40px", marginBottom: "16px", animation: "spin 1s linear infinite" }}>⚙️</div>
+        <div
+          style={{
+            fontSize: "40px",
+            marginBottom: "16px",
+            animation: "spin 1s linear infinite",
+          }}
+        >
+          ⚙️
+        </div>
         Loading instrument details...
       </div>
     );
@@ -95,7 +158,11 @@ export default function InstrumentDetail() {
       <div style={{ textAlign: "center", padding: "100px", color: "#ef4444" }}>
         <h2>Lỗi!</h2>
         <p>{error || "Không tìm thấy dữ liệu."}</p>
-        <button className="btn-secondary" onClick={() => navigate("/app/instrument")} style={{ marginTop: "20px" }}>
+        <button
+          className="btn-secondary"
+          onClick={() => navigate("/app/instrument")}
+          style={{ marginTop: "20px" }}
+        >
           Quay lại danh sách
         </button>
       </div>
@@ -105,22 +172,34 @@ export default function InstrumentDetail() {
   return (
     <div className="instrument-detail-page">
       <div className="detail-header">
-        <button className="btn-back" onClick={() => navigate("/app/instrument")}>
+        <button
+          className="btn-back"
+          onClick={() => navigate("/app/instrument")}
+        >
           <FaArrowLeft /> Back to Instruments
         </button>
-        
+
         <div className="instrument-title-section">
           <div className="instrument-title-left">
-            <h1>{instrument.name || instrument.tagId || "Unknown Instrument"}</h1>
+            <h1>
+              {instrument.name || instrument.tagId || "Unknown Instrument"}
+            </h1>
             <span className={`badge ${getStatusClass(instrument.status)}`}>
               {instrument.status || "N/A"}
             </span>
           </div>
           <div className="detail-actions">
-            <button className="btn-secondary" onClick={fetchInstrumentDetails} title="Reload Data">
+            <button
+              className="btn-secondary"
+              onClick={fetchInstrumentDetails}
+              title="Reload Data"
+            >
               <FaSync />
             </button>
-            <button className="btn-view-3d" onClick={() => navigate(`/app/instrument/${id}/3d-view`)}>
+            <button
+              className="btn-view-3d"
+              onClick={() => navigate(`/app/instrument/${id}/3d-view`)}
+            >
               <FaCube /> View in 3D
             </button>
             <button className="btn-export">
@@ -129,7 +208,9 @@ export default function InstrumentDetail() {
           </div>
         </div>
 
-        <p className="instrument-subtitle">Monitor and manage critical equipment specifications</p>
+        <p className="instrument-subtitle">
+          Monitor and manage critical equipment specifications
+        </p>
       </div>
 
       <div className="instrument-content">
@@ -149,7 +230,9 @@ export default function InstrumentDetail() {
               </div>
               <div className="spec-item">
                 <label>Calibrated</label>
-                <span className={`badge ${instrument.lastCalibrated ? 'badge-calibrated' : 'badge-warning'}`}>
+                <span
+                  className={`badge ${instrument.lastCalibrated ? "badge-calibrated" : "badge-warning"}`}
+                >
                   {instrument.lastCalibrated ? "Calibrated" : "Pending"}
                 </span>
               </div>
@@ -163,15 +246,23 @@ export default function InstrumentDetail() {
               </div>
               <div className="spec-item">
                 <label>Serial / Tag ID</label>
-                <span>{instrument.serialNumber || instrument.tagId || "-"}</span>
+                <span>
+                  {instrument.serialNumber || instrument.tagId || "-"}
+                </span>
               </div>
               <div className="spec-item">
                 <label>Next Scheduled Inspection</label>
-                <span>{formatDate(instrument.nextCalibration || instrument.calibrationDueDate)}</span>
+                <span>
+                  {formatDate(
+                    instrument.nextCalibration || instrument.calibrationDueDate,
+                  )}
+                </span>
               </div>
               <div className="spec-item">
                 <label>Material / Type</label>
-                <span>{instrument.type || instrument.instrumentType || "-"}</span>
+                <span>
+                  {instrument.type || instrument.instrumentType || "-"}
+                </span>
               </div>
               <div className="spec-item">
                 <label>Location</label>
@@ -179,7 +270,11 @@ export default function InstrumentDetail() {
               </div>
               <div className="spec-item spec-item-full">
                 <label>Installation Date / Notes</label>
-                <span>{formatDate(instrument.installationDate || instrument.createdAt)}</span>
+                <span>
+                  {formatDate(
+                    instrument.installationDate || instrument.createdAt,
+                  )}
+                </span>
               </div>
             </div>
           </div>
@@ -192,8 +287,12 @@ export default function InstrumentDetail() {
               <div className="status-box">
                 <label>Equipment Status</label>
                 <div className="status-value">
-                  <span className="value-large">{simulatorInfo?.openPercentage || "--"}% Open</span>
-                  <span className={`badge ${simulatorInfo?.status === 'Faulty' ? 'badge-faulty' : 'badge-normal'}`}>
+                  <span className="value-large">
+                    {simulatorInfo?.openPercentage || "--"}% Open
+                  </span>
+                  <span
+                    className={`badge ${simulatorInfo?.status === "Faulty" ? "badge-faulty" : "badge-normal"}`}
+                  >
                     {simulatorInfo?.status || "Normal"}
                   </span>
                 </div>
@@ -202,7 +301,9 @@ export default function InstrumentDetail() {
               <div className="status-box">
                 <label>Current Pressure</label>
                 <div className="status-value">
-                  <span className="value-large">{simulatorInfo?.pressure || "--"} PSI</span>
+                  <span className="value-large">
+                    {simulatorInfo?.pressure || "--"} PSI
+                  </span>
                   <span className="badge badge-normal">Normal</span>
                 </div>
               </div>
@@ -210,21 +311,27 @@ export default function InstrumentDetail() {
               <div className="status-box">
                 <label>Flow Rate</label>
                 <div className="status-value">
-                  <span className="value-large status-success">{simulatorInfo?.flowRate || "--"} GPM</span>
+                  <span className="value-large status-success">
+                    {simulatorInfo?.flowRate || "--"} GPM
+                  </span>
                 </div>
               </div>
 
               <div className="status-box">
                 <label>Operating Hours</label>
                 <div className="status-value">
-                  <span className="value-large">{simulatorInfo?.operatingHours || "--"} hours</span>
+                  <span className="value-large">
+                    {simulatorInfo?.operatingHours || "--"} hours
+                  </span>
                 </div>
               </div>
 
               <div className="status-box status-box-full">
                 <label>Last Maintenance</label>
                 <div className="status-value">
-                  <span>{simulatorInfo?.maintenanceInfo || "Data unavailable"}</span>
+                  <span>
+                    {simulatorInfo?.maintenanceInfo || "Data unavailable"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -233,7 +340,9 @@ export default function InstrumentDetail() {
           {/* Assigned Equipment (Mock Data) */}
           <div className="instrument-card">
             <h3>Assigned Equipment</h3>
-            <p className="card-subtitle">Connected instrumentation in the system</p>
+            <p className="card-subtitle">
+              Connected instrumentation in the system
+            </p>
             <div className="equipment-list">
               {equipment.map((item) => (
                 <div key={item.id} className="equipment-item">
@@ -264,11 +373,15 @@ export default function InstrumentDetail() {
                 <div key={index} className="maintenance-item">
                   <div className="maintenance-header">
                     <span className="maintenance-date">{item.date}</span>
-                    <span className={`badge ${
-                      item.status === 'Upcoming' ? 'badge-upcoming' : 
-                      item.status === 'Delayed' ? 'badge-delayed' : 
-                      'badge-completed'
-                    }`}>
+                    <span
+                      className={`badge ${
+                        item.status === "Upcoming"
+                          ? "badge-upcoming"
+                          : item.status === "Delayed"
+                            ? "badge-delayed"
+                            : "badge-completed"
+                      }`}
+                    >
                       {item.status}
                     </span>
                   </div>
@@ -285,7 +398,9 @@ export default function InstrumentDetail() {
               <div className="metric-item">
                 <label>Uptime (24 hrs)</label>
                 <div className="metric-value">
-                  <span className="metric-percent success">{simulatorInfo?.uptime || "99.8"}%</span>
+                  <span className="metric-percent success">
+                    {simulatorInfo?.uptime || "99.8"}%
+                  </span>
                 </div>
               </div>
               <div className="metric-item">
@@ -297,7 +412,9 @@ export default function InstrumentDetail() {
               <div className="metric-item">
                 <label>Pressure Dev Trhx</label>
                 <div className="metric-value">
-                  <span className="metric-highlight">{simulatorInfo?.pressureDev || "±10"}psi</span>
+                  <span className="metric-highlight">
+                    {simulatorInfo?.pressureDev || "±10"}psi
+                  </span>
                 </div>
               </div>
             </div>
@@ -311,9 +428,12 @@ export default function InstrumentDetail() {
             </div>
             <div className="alerts-list">
               {alerts.map((alert) => (
-                <div key={alert.id} className={`alert-item alert-${alert.type}`}>
+                <div
+                  key={alert.id}
+                  className={`alert-item alert-${alert.type}`}
+                >
                   <div className="alert-icon">
-                    {alert.type === 'warning' ? '⚠️' : '🔴'}
+                    {alert.type === "warning" ? "⚠️" : "🔴"}
                   </div>
                   <div className="alert-content">
                     <p className="alert-message">{alert.message}</p>

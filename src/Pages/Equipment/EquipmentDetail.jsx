@@ -1,8 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaFileAlt, FaFileExport, FaFolder, FaSync } from "react-icons/fa";
-import equipmentApi from "../../services/e";
-quipmentApi
+import {
+  FaArrowLeft,
+  FaFileAlt,
+  FaFileExport,
+  FaFolder,
+  FaSync,
+} from "react-icons/fa";
+import equipmentApi from "../../services/equipmentApi";
+
 export default function EquipmentDetail() {
   const { id } = useParams(); // Lấy ID thiết bị từ URL (ví dụ: /app/equipment/123)
   const navigate = useNavigate();
@@ -11,7 +17,7 @@ export default function EquipmentDetail() {
   const [equipment, setEquipment] = useState(null);
   const [controlInfo, setControlInfo] = useState(null);
   const [maintenanceHistory, setMaintenanceHistory] = useState([]);
-  
+
   // State quản lý trạng thái tải
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,7 +37,7 @@ export default function EquipmentDetail() {
       const [equipRes, controlRes, maintenanceRes] = await Promise.allSettled([
         equipmentApi.getEquipmentDetail(id),
         equipmentApi.getControlInformation(id),
-        equipmentApi.getEquipmentMaintenanceHistory(id)
+        equipmentApi.getEquipmentMaintenanceHistory(id),
       ]);
 
       // Xử lý dữ liệu Chi tiết thiết bị (Bắt buộc)
@@ -50,7 +56,6 @@ export default function EquipmentDetail() {
       if (maintenanceRes.status === "fulfilled") {
         setMaintenanceHistory(maintenanceRes.value.data?.data || []);
       }
-
     } catch (err) {
       console.error("Lỗi khi tải chi tiết thiết bị:", err);
       setError(err.message || "Đã xảy ra lỗi khi tải dữ liệu");
@@ -68,8 +73,10 @@ export default function EquipmentDetail() {
   // --- HELPERS ---
   const formatDate = (dateString) => {
     if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      year: 'numeric', month: 'long', day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -78,15 +85,40 @@ export default function EquipmentDetail() {
     if (!dateString) return "-";
     const installDate = new Date(dateString);
     const now = new Date();
-    const months = (now.getFullYear() - installDate.getFullYear()) * 12 + (now.getMonth() - installDate.getMonth());
+    const months =
+      (now.getFullYear() - installDate.getFullYear()) * 12 +
+      (now.getMonth() - installDate.getMonth());
     return `${months} Months`;
+  };
+
+  // Helper for status badge class
+  const getStatusClass = (status) => {
+    const lowerStatus = status?.toLowerCase() || "";
+    if (lowerStatus === "active" || lowerStatus === "operational")
+      return "badge-active";
+    if (lowerStatus === "maintenance") return "badge-maintenance";
+    if (
+      lowerStatus === "faulty" ||
+      lowerStatus === "inactive" ||
+      lowerStatus === "out-of-service"
+    )
+      return "badge-faulty";
+    return "badge-warning";
   };
 
   // Render trạng thái (Loading/Error)
   if (isLoading) {
     return (
       <div style={{ textAlign: "center", padding: "100px", color: "#64748b" }}>
-        <div style={{ fontSize: "40px", marginBottom: "16px", animation: "spin 1s linear infinite" }}>⚙️</div>
+        <div
+          style={{
+            fontSize: "40px",
+            marginBottom: "16px",
+            animation: "spin 1s linear infinite",
+          }}
+        >
+          ⚙️
+        </div>
         Loading equipment details...
       </div>
     );
@@ -97,7 +129,11 @@ export default function EquipmentDetail() {
       <div style={{ textAlign: "center", padding: "100px", color: "#ef4444" }}>
         <h2>Lỗi!</h2>
         <p>{error || "Không tìm thấy thiết bị."}</p>
-        <button className="btn-secondary" onClick={() => navigate("/app/equipment")} style={{ marginTop: "20px" }}>
+        <button
+          className="btn-secondary"
+          onClick={() => navigate("/app/equipment")}
+          style={{ marginTop: "20px" }}
+        >
           Quay lại danh sách
         </button>
       </div>
@@ -111,20 +147,27 @@ export default function EquipmentDetail() {
         <button className="btn-back" onClick={() => navigate("/app/equipment")}>
           <FaArrowLeft /> Back to Equipment
         </button>
-        
+
         <div className="equipment-title-section">
           <div className="equipment-title-left">
             <h1>{equipment.name || "Unknown Equipment"}</h1>
-            <span className={`badge ${equipment.status?.toLowerCase() === 'operational' ? 'badge-active' : 'badge-warning'}`}>
+            <span className={`badge ${getStatusClass(equipment.status)}`}>
               {equipment.status || "N/A"}
             </span>
           </div>
           <div className="detail-actions">
             {/* Nút Refresh dữ liệu Live */}
-            <button className="btn-secondary" onClick={fetchEquipmentDetails} style={{ marginRight: '10px' }}>
+            <button
+              className="btn-secondary"
+              onClick={fetchEquipmentDetails}
+              style={{ marginRight: "10px" }}
+            >
               <FaSync />
             </button>
-            <button className="btn-view-diagrams" onClick={() => navigate(`/app/equipment/${id}/3d-view`)}>
+            <button
+              className="btn-view-diagrams"
+              onClick={() => navigate(`/app/equipment/${id}/3d-view`)}
+            >
               <FaFileAlt /> View 3D Model
             </button>
             <button className="btn-order-report">
@@ -137,7 +180,6 @@ export default function EquipmentDetail() {
       <div className="equipment-content">
         {/* Left Column */}
         <div className="equipment-left">
-          
           {/* Equipment Specifications */}
           <div className="equipment-card">
             <div className="card-header-with-btn">
@@ -147,7 +189,9 @@ export default function EquipmentDetail() {
             <div className="spec-grid">
               <div className="spec-item">
                 <label>Equipment ID</label>
-                <span>{equipment.id || equipment._id?.substring(0,8) || "-"}</span>
+                <span>
+                  {equipment.id || equipment._id?.substring(0, 8) || "-"}
+                </span>
               </div>
               <div className="spec-item">
                 <label>Install Date</label>
@@ -188,7 +232,9 @@ export default function EquipmentDetail() {
               <div className="status-box">
                 <label>Operating Status</label>
                 <div className="status-value">
-                  <span className={`value-large ${controlInfo?.status === 'Normal' ? 'status-success' : 'status-warning'}`}>
+                  <span
+                    className={`value-large ${controlInfo?.status === "Normal" ? "status-success" : "status-warning"}`}
+                  >
                     {controlInfo?.status || "N/A"}
                   </span>
                 </div>
@@ -198,14 +244,18 @@ export default function EquipmentDetail() {
               <div className="status-box">
                 <label>Temperature</label>
                 <div className="status-value">
-                  <span className="value-large">{controlInfo?.settings?.temperature || "--"} °C</span>
+                  <span className="value-large">
+                    {controlInfo?.settings?.temperature || "--"} °C
+                  </span>
                 </div>
               </div>
 
               <div className="status-box">
                 <label>Pressure</label>
                 <div className="status-value">
-                  <span className="value-large">{controlInfo?.settings?.pressure || "--"} PSI</span>
+                  <span className="value-large">
+                    {controlInfo?.settings?.pressure || "--"} PSI
+                  </span>
                 </div>
               </div>
             </div>
@@ -236,20 +286,23 @@ export default function EquipmentDetail() {
 
         {/* Right Column */}
         <div className="equipment-right">
-          
           {/* Current Condition & Tech Specs */}
           <div className="equipment-card">
             <h3>Technical Specifications</h3>
             <div className="condition-grid">
               {/* Hiển thị object technicalSpecs từ API Equipment */}
-              {equipment.technicalSpecs ? Object.entries(equipment.technicalSpecs).map(([key, value]) => (
-                <div className="condition-item" key={key}>
-                  <label style={{ textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1').trim()}</label>
-                  <div className="condition-value">
-                    <span>{value || "--"}</span>
+              {equipment.technicalSpecs ? (
+                Object.entries(equipment.technicalSpecs).map(([key, value]) => (
+                  <div className="condition-item" key={key}>
+                    <label style={{ textTransform: "capitalize" }}>
+                      {key.replace(/([A-Z])/g, " $1").trim()}
+                    </label>
+                    <div className="condition-value">
+                      <span>{value || "--"}</span>
+                    </div>
                   </div>
-                </div>
-              )) : (
+                ))
+              ) : (
                 <div className="condition-item">
                   <span>No technical specifications available.</span>
                 </div>
@@ -263,21 +316,33 @@ export default function EquipmentDetail() {
 
             <div className="maintenance-list">
               {maintenanceHistory.length === 0 ? (
-                <p style={{ color: "#64748b", fontStyle: "italic" }}>No maintenance records found.</p>
+                <p style={{ color: "#64748b", fontStyle: "italic" }}>
+                  No maintenance records found.
+                </p>
               ) : (
                 maintenanceHistory.map((item, index) => (
                   <div key={item.id || index} className="maintenance-item">
                     <div className="maintenance-header">
-                      <span className="maintenance-date">{formatDate(item.date || item.createdAt)}</span>
-                      <span className={`badge ${
-                        item.status === 'Upcoming' ? 'badge-upcoming' : 
-                        item.status === 'Delayed' ? 'badge-delayed' : 
-                        'badge-completed'
-                      }`}>
+                      <span className="maintenance-date">
+                        {formatDate(item.date || item.createdAt)}
+                      </span>
+                      <span
+                        className={`badge ${
+                          item.status === "Upcoming"
+                            ? "badge-upcoming"
+                            : item.status === "Delayed"
+                              ? "badge-delayed"
+                              : "badge-completed"
+                        }`}
+                      >
                         {item.status || item.type}
                       </span>
                     </div>
-                    <p className="maintenance-task">{item.description || item.task || "No description provided."}</p>
+                    <p className="maintenance-task">
+                      {item.description ||
+                        item.task ||
+                        "No description provided."}
+                    </p>
                   </div>
                 ))
               )}
@@ -288,7 +353,9 @@ export default function EquipmentDetail() {
           <div className="equipment-card">
             <div className="card-header-with-icon">
               <h3>Recent Alerts</h3>
-              <span className={`alert-count ${controlInfo?.alerts?.length > 0 ? 'alert-count-danger' : 'alert-count-info'}`}>
+              <span
+                className={`alert-count ${controlInfo?.alerts?.length > 0 ? "alert-count-danger" : "alert-count-info"}`}
+              >
                 {controlInfo?.alerts?.length || 0}
               </span>
             </div>
@@ -299,8 +366,12 @@ export default function EquipmentDetail() {
                   <div key={idx} className="alert-item alert-danger">
                     <div className="alert-icon">🔴</div>
                     <div className="alert-content">
-                      <p className="alert-message">{alert.message || "Alert Triggered"}</p>
-                      <span className="alert-time">{formatDate(alert.timestamp)}</span>
+                      <p className="alert-message">
+                        {alert.message || "Alert Triggered"}
+                      </p>
+                      <span className="alert-time">
+                        {formatDate(alert.timestamp)}
+                      </span>
                     </div>
                   </div>
                 ))
@@ -309,13 +380,14 @@ export default function EquipmentDetail() {
                   <div className="alert-icon">🟢</div>
                   <div className="alert-content">
                     <p className="alert-message">No Critical Alerts</p>
-                    <span className="alert-time">All systems operating normally</span>
+                    <span className="alert-time">
+                      All systems operating normally
+                    </span>
                   </div>
                 </div>
               )}
             </div>
           </div>
-
         </div>
       </div>
     </div>

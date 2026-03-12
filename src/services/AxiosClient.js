@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-  baseURL: "https://oil-gas-omega.vercel.app", // Không có /api-docs/ ở cuối
+  // baseURL: "http://localhost:3000/api", 
+  baseURL: "https://oil-gas-omega.vercel.app/api",
   headers: { "Content-Type": "application/json" },
 });
 

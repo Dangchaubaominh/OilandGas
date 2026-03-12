@@ -104,9 +104,13 @@ export default function UserManagement() {
 
       if (isEditMode) {
         payload.status = data.status;
+        if (data.password) {
+          payload.password = data.password;
+        }
         await userApi.updateUser(editingUserId, payload);
         showToast("success", `Updated user "${data.name}" successfully!`);
       } else {
+        payload.password = data.password;
         await userApi.createUser(payload);
         showToast("success", `Created new user "${data.name}" successfully!`);
       }
@@ -127,10 +131,11 @@ export default function UserManagement() {
 
   const handleEdit = (user) => {
     setIsEditMode(true);
-    setEditingUserId(user._id || user.id); // Hỗ trợ cả _id (Backend) và id
+    setEditingUserId(user.userCode); // Use userCode as identifier
     setModalDefaults({
       name: user.name || "",
       email: user.email || "",
+      password: "",
       phone: user.phone || "",
       department: user.department || "",
       role:
@@ -148,6 +153,7 @@ export default function UserManagement() {
     setModalDefaults({
       name: "",
       email: "",
+      password: "",
       phone: "",
       department: "",
       role: "",
@@ -239,6 +245,7 @@ export default function UserManagement() {
       />
 
       <UserFormModal
+        key={isEditMode ? "edit" : "create"}
         isOpen={showModal}
         onClose={closeModal}
         onSubmit={onSubmitForm}

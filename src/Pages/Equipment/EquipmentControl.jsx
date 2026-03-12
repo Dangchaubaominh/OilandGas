@@ -21,6 +21,7 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import equipmentApi from "../../services/equipmentApi";
+import { showToast } from "../../utils/toastHandler";
 
 export default function EquipmentControl() {
   const navigate = useNavigate();
@@ -42,6 +43,8 @@ export default function EquipmentControl() {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     equipmentName: "",
     equipmentType: "",
@@ -100,12 +103,14 @@ export default function EquipmentControl() {
     const maintenance = equipment.filter(
       (i) => i.status?.toLowerCase() === "maintenance",
     ).length;
-    const inactive = equipment.filter(
+    const faulty = equipment.filter(
       (i) =>
+        i.status?.toLowerCase() === "faulty" ||
         i.status?.toLowerCase() === "inactive" ||
-        i.status?.toLowerCase() === "offline",
+        i.status?.toLowerCase() === "offline" ||
+        i.status?.toLowerCase() === "out-of-service",
     ).length;
-    return { total, active, maintenance, inactive };
+    return { total, active, maintenance, faulty };
   }, [equipment]);
 
   // --- PAGINATION ---
@@ -119,9 +124,11 @@ export default function EquipmentControl() {
   // --- HELPERS ---
   const getTypeIcon = (type) => {
     const lowerType = type?.toLowerCase() || "";
-    if (lowerType.includes("pump")) return <FaOilCan />;
-    if (lowerType.includes("valve")) return <FaCog />;
-    if (lowerType.includes("sensor")) return <FaMicrochip />;
+    if (lowerType === "drilling") return <FaCog />;
+    if (lowerType === "pumping") return <FaOilCan />;
+    if (lowerType === "safety") return <FaExclamationTriangle />;
+    if (lowerType === "measurement") return <FaMicrochip />;
+    if (lowerType === "transportation") return <FaCogs />;
     return <FaCogs />;
   };
 
@@ -132,9 +139,11 @@ export default function EquipmentControl() {
       case "active":
         return "badge-active";
       case "maintenance":
-        return "badge-calibration-due";
+        return "badge-maintenance";
+      case "faulty":
       case "inactive":
       case "offline":
+      case "out-of-service":
         return "badge-faulty";
       default:
         return "badge-default";
@@ -149,8 +158,10 @@ export default function EquipmentControl() {
         return <FaCheckCircle />;
       case "maintenance":
         return <FaExclamationTriangle />;
+      case "faulty":
       case "inactive":
       case "offline":
+      case "out-of-service":
         return <FaTimesCircle />;
       default:
         return null;
@@ -166,15 +177,49 @@ export default function EquipmentControl() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Saving equipment:", formData);
-    alert("Add new equipment feature is pending Backend API update!");
-    handleCancel();
+    setIsSubmitting(true);
+
+    try {
+      const equipmentData = {
+        name: formData.equipmentName,
+        type: formData.equipmentType,
+        serial: formData.serialNumber,
+        model: formData.model,
+        manufacturer: formData.manufacturer,
+        location: formData.location,
+        status: formData.currentStatus || "operational",
+        technicalSpecs: formData.technicalSpec
+          ? { description: formData.technicalSpec }
+          : {},
+        purchaseDate: formData.installDate || undefined,
+      };
+
+      if (editTarget) {
+        // Update existing equipment
+        await equipmentApi.updateEquipment(editTarget._id, equipmentData);
+        showToast("success", "Equipment updated successfully!");
+      } else {
+        // Create new equipment
+        await equipmentApi.createEquipment(equipmentData);
+        showToast("success", "Equipment created successfully!");
+      }
+
+      handleCancel();
+      fetchEquipmentData(true);
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Failed to save equipment";
+      showToast("error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
     setShowModal(false);
+    setEditTarget(null);
     setFormData({
       equipmentName: "",
       equipmentType: "",
@@ -189,16 +234,45 @@ export default function EquipmentControl() {
     });
   };
 
+  const handleEditClick = (item) => {
+    setEditTarget(item);
+    setFormData({
+      equipmentName: item.name || "",
+      equipmentType: item.type || "",
+      serialNumber: item.serial || "",
+      model: item.model || "",
+      manufacturer: item.manufacturer || "",
+      location: item.location || "",
+      installDate: item.purchaseDate ? item.purchaseDate.split("T")[0] : "",
+      currentStatus: item.status || "operational",
+      technicalSpec: item.technicalSpecs?.description || "",
+      needsCalibration: false,
+    });
+    setShowModal(true);
+  };
+
   const handleDeleteClick = (item) => {
     setDeleteTarget(item);
     setShowDeleteModal(true);
   };
 
-  const handleDeleteConfirm = () => {
-    console.log("Deleting equipment:", deleteTarget);
-    alert("Delete feature is pending Backend API update!");
-    setShowDeleteModal(false);
-    setDeleteTarget(null);
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsSubmitting(true);
+
+    try {
+      await equipmentApi.deleteEquipment(deleteTarget._id);
+      showToast("success", "Equipment deleted successfully!");
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+      fetchEquipmentData(true);
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Failed to delete equipment";
+      showToast("error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const clearFilters = () => {
@@ -269,7 +343,7 @@ export default function EquipmentControl() {
         <div className="stat-card">
           <div className="stat-content">
             <div className="stat-info">
-              <p className="stat-label">Under Maintenance</p>
+              <p className="stat-label">Maintenance</p>
               <p className="stat-value stat-value-orange">
                 {stats.maintenance}
               </p>
@@ -289,8 +363,8 @@ export default function EquipmentControl() {
         <div className="stat-card">
           <div className="stat-content">
             <div className="stat-info">
-              <p className="stat-label">Inactive / Offline</p>
-              <p className="stat-value stat-value-red">{stats.inactive}</p>
+              <p className="stat-label">Faulty / Inactive</p>
+              <p className="stat-value stat-value-red">{stats.faulty}</p>
             </div>
             <div className="stat-icon stat-icon-red">
               <FaTimesCircle />
@@ -299,7 +373,7 @@ export default function EquipmentControl() {
           <div
             className="stat-bar stat-bar-red"
             style={{
-              width: `${stats.total ? (stats.inactive / stats.total) * 100 : 0}%`,
+              width: `${stats.total ? (stats.faulty / stats.total) * 100 : 0}%`,
             }}
           />
         </div>
@@ -334,9 +408,9 @@ export default function EquipmentControl() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Inactive">Inactive</option>
+                <option value="operational">Active</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="faulty">Faulty/Inactive</option>
               </select>
             </div>
 
@@ -346,11 +420,12 @@ export default function EquipmentControl() {
               onChange={(e) => setTypeFilter(e.target.value)}
             >
               <option value="">All Types</option>
-              <option value="Pump">Pump</option>
-              <option value="Valve">Valve</option>
-              <option value="Sensor">Sensor</option>
-              <option value="Compressor">Compressor</option>
-              <option value="Motor">Motor</option>
+              <option value="drilling">Drilling</option>
+              <option value="pumping">Pumping</option>
+              <option value="safety">Safety</option>
+              <option value="measurement">Measurement</option>
+              <option value="transportation">Transportation</option>
+              <option value="other">Other</option>
             </select>
 
             {hasActiveFilters && (
@@ -369,10 +444,21 @@ export default function EquipmentControl() {
               <span className="filter-tag">Search: "{searchQuery}"</span>
             )}
             {statusFilter && (
-              <span className="filter-tag">Status: {statusFilter}</span>
+              <span className="filter-tag">
+                Status:{" "}
+                {statusFilter === "operational"
+                  ? "Active"
+                  : statusFilter === "maintenance"
+                    ? "Maintenance"
+                    : statusFilter === "faulty"
+                      ? "Faulty/Inactive"
+                      : statusFilter}
+              </span>
             )}
             {typeFilter && (
-              <span className="filter-tag">Type: {typeFilter}</span>
+              <span className="filter-tag">
+                Type: {typeFilter.charAt(0).toUpperCase() + typeFilter.slice(1)}
+              </span>
             )}
           </div>
         )}
@@ -507,9 +593,7 @@ export default function EquipmentControl() {
                           <button
                             className="btn-icon btn-edit"
                             title="Edit"
-                            onClick={() =>
-                              navigate(`/app/equipment/${item.id || item._id}`)
-                            }
+                            onClick={() => handleEditClick(item)}
                           >
                             <FaEdit />
                           </button>
@@ -587,9 +671,11 @@ export default function EquipmentControl() {
           >
             <div className="modal-header">
               <div>
-                <h2>Add New Equipment</h2>
+                <h2>{editTarget ? "Edit Equipment" : "Add New Equipment"}</h2>
                 <p className="modal-subtitle">
-                  Add a new equipment to the tracking system
+                  {editTarget
+                    ? "Update equipment information"
+                    : "Add a new equipment to the tracking system"}
                 </p>
               </div>
               <button className="modal-close" onClick={handleCancel}>
@@ -631,11 +717,12 @@ export default function EquipmentControl() {
                         required
                       >
                         <option value="">Select type</option>
-                        <option value="Pump">Pump</option>
-                        <option value="Valve">Valve</option>
-                        <option value="Sensor">Sensor</option>
-                        <option value="Compressor">Compressor</option>
-                        <option value="Motor">Motor</option>
+                        <option value="drilling">Drilling</option>
+                        <option value="pumping">Pumping</option>
+                        <option value="safety">Safety</option>
+                        <option value="measurement">Measurement</option>
+                        <option value="transportation">Transportation</option>
+                        <option value="other">Other</option>
                       </select>
                     </div>
 
@@ -733,9 +820,9 @@ export default function EquipmentControl() {
                         required
                       >
                         <option value="">Select status</option>
-                        <option value="Active">Active</option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Inactive">Inactive</option>
+                        <option value="operational">Active</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="faulty">Faulty/Inactive</option>
                       </select>
                     </div>
 
@@ -774,11 +861,25 @@ export default function EquipmentControl() {
                   type="button"
                   className="btn-cancel"
                   onClick={handleCancel}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-submit">
-                  <FaPlus /> Save Equipment
+                <button
+                  type="submit"
+                  className="btn-submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <FaSync className="spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus />{" "}
+                      {editTarget ? "Update Equipment" : "Save Equipment"}
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -809,14 +910,24 @@ export default function EquipmentControl() {
               <button
                 className="btn-cancel"
                 onClick={() => setShowDeleteModal(false)}
+                disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 className="btn-delete-confirm"
                 onClick={handleDeleteConfirm}
+                disabled={isSubmitting}
               >
-                <FaTrash /> Delete
+                {isSubmitting ? (
+                  <>
+                    <FaSync className="spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <FaTrash /> Delete
+                  </>
+                )}
               </button>
             </div>
           </div>

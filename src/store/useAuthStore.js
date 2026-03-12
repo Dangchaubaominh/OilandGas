@@ -28,6 +28,15 @@ const useAuthStore = create((set) => ({
     localStorage.removeItem("accessToken");
     set({ user: null, accessToken: null });
   },
+
+  // Hàm cập nhật thông tin user (dùng cho avatar, profile...)
+  updateUser: (updatedData) => {
+    set((state) => {
+      const newUser = { ...state.user, ...updatedData };
+      localStorage.setItem("userInfo", JSON.stringify(newUser));
+      return { user: newUser };
+    });
+  },
 }));
 
 export default useAuthStore;

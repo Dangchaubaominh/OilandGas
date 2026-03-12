@@ -22,6 +22,7 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import instrumentApi from "../../services/instrumentApi";
+import { showToast } from "../../utils/toastHandler";
 
 export default function InstrumentManagement() {
   const navigate = useNavigate();
@@ -43,6 +44,8 @@ export default function InstrumentManagement() {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     tagId: "",
     instrumentType: "",
@@ -102,17 +105,18 @@ export default function InstrumentManagement() {
         i.status?.toLowerCase() === "active" ||
         i.status?.toLowerCase() === "operational",
     ).length;
-    const calibrationDue = instruments.filter(
+    const maintenance = instruments.filter(
       (i) =>
-        i.status?.toLowerCase() === "calibration due" ||
-        i.status?.toLowerCase() === "maintenance",
+        i.status?.toLowerCase() === "maintenance" ||
+        i.status?.toLowerCase() === "calibration",
     ).length;
     const faulty = instruments.filter(
       (i) =>
         i.status?.toLowerCase() === "faulty" ||
-        i.status?.toLowerCase() === "inactive",
+        i.status?.toLowerCase() === "inactive" ||
+        i.status?.toLowerCase() === "out-of-service",
     ).length;
-    return { total, active, calibrationDue, faulty };
+    return { total, active, maintenance, faulty };
   }, [instruments]);
 
   // --- PAGINATION ---
@@ -130,11 +134,12 @@ export default function InstrumentManagement() {
       case "active":
       case "operational":
         return "badge-active";
-      case "calibration due":
       case "maintenance":
-        return "badge-calibration-due";
+      case "calibration":
+        return "badge-maintenance";
       case "faulty":
       case "inactive":
+      case "out-of-service":
         return "badge-faulty";
       default:
         return "badge-default";
@@ -147,11 +152,12 @@ export default function InstrumentManagement() {
       case "active":
       case "operational":
         return <FaCheckCircle />;
-      case "calibration due":
       case "maintenance":
+      case "calibration":
         return <FaExclamationTriangle />;
       case "faulty":
       case "inactive":
+      case "out-of-service":
         return <FaTimesCircle />;
       default:
         return null;
@@ -160,10 +166,13 @@ export default function InstrumentManagement() {
 
   const getTypeIcon = (type) => {
     const lowerType = type?.toLowerCase() || "";
-    if (lowerType.includes("pressure")) return <FaTachometerAlt />;
-    if (lowerType.includes("temperature")) return <FaThermometerHalf />;
-    if (lowerType.includes("flow")) return <FaWater />;
-    if (lowerType.includes("level")) return <FaRulerVertical />;
+    if (lowerType === "pressure") return <FaTachometerAlt />;
+    if (lowerType === "temperature") return <FaThermometerHalf />;
+    if (lowerType === "flow") return <FaWater />;
+    if (lowerType === "level") return <FaRulerVertical />;
+    if (lowerType === "safety") return <FaExclamationTriangle />;
+    if (lowerType === "control") return <FaTools />;
+    if (lowerType === "monitoring") return <FaCheckCircle />;
     return <FaTools />;
   };
 
@@ -172,15 +181,56 @@ export default function InstrumentManagement() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Saving instrument:", formData);
-    alert("Add new instrument feature is pending Backend API update!");
-    handleCancel();
+    setIsSubmitting(true);
+
+    try {
+      const instrumentData = {
+        name: formData.tagId,
+        type: formData.instrumentType,
+        serial: formData.serialNumber,
+        model: formData.modelNumber,
+        manufacturer: formData.manufacturer,
+        location: formData.location,
+        status: formData.status || "operational",
+        specifications: {
+          range:
+            formData.rangeMin && formData.rangeMax
+              ? `${formData.rangeMin}-${formData.rangeMax} ${formData.unit || ""}`.trim()
+              : undefined,
+        },
+        installationDate: formData.installationDate || undefined,
+        calibrationInterval: formData.calibrationInterval
+          ? parseInt(formData.calibrationInterval)
+          : undefined,
+        lastCalibrationDate: formData.lastCalibrationDate || undefined,
+      };
+
+      if (editTarget) {
+        // Update existing instrument
+        await instrumentApi.updateInstrument(editTarget._id, instrumentData);
+        showToast("success", "Instrument updated successfully!");
+      } else {
+        // Create new instrument
+        await instrumentApi.createInstrument(instrumentData);
+        showToast("success", "Instrument created successfully!");
+      }
+
+      handleCancel();
+      fetchInstruments(true);
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Failed to save instrument";
+      showToast("error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
     setShowModal(false);
+    setEditTarget(null);
     setFormData({
       tagId: "",
       instrumentType: "",
@@ -195,7 +245,33 @@ export default function InstrumentManagement() {
       rangeMin: "",
       rangeMax: "",
       unit: "",
+      status: "",
     });
+  };
+
+  const handleEditClick = (instrument) => {
+    setEditTarget(instrument);
+    setFormData({
+      tagId: instrument.name || instrument.tagId || "",
+      instrumentType: instrument.type || "",
+      manufacturer: instrument.manufacturer || "",
+      modelNumber: instrument.model || instrument.modelNumber || "",
+      location: instrument.location || "",
+      installationDate: instrument.installationDate
+        ? instrument.installationDate.split("T")[0]
+        : "",
+      lastCalibrationDate: instrument.lastCalibrationDate
+        ? instrument.lastCalibrationDate.split("T")[0]
+        : "",
+      calibrationInterval: instrument.calibrationInterval || "",
+      description: instrument.description || "",
+      serialNumber: instrument.serial || instrument.serialNumber || "",
+      rangeMin: "",
+      rangeMax: "",
+      unit: "",
+      status: instrument.status || "operational",
+    });
+    setShowModal(true);
   };
 
   const handleDeleteClick = (instrument) => {
@@ -203,11 +279,23 @@ export default function InstrumentManagement() {
     setShowDeleteModal(true);
   };
 
-  const handleDeleteConfirm = () => {
-    console.log("Deleting instrument:", deleteTarget);
-    alert("Delete feature is pending Backend API update!");
-    setShowDeleteModal(false);
-    setDeleteTarget(null);
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsSubmitting(true);
+
+    try {
+      await instrumentApi.deleteInstrument(deleteTarget._id);
+      showToast("success", "Instrument deleted successfully!");
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
+      fetchInstruments(true);
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Failed to delete instrument";
+      showToast("error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const clearFilters = () => {
@@ -278,9 +366,9 @@ export default function InstrumentManagement() {
         <div className="stat-card">
           <div className="stat-content">
             <div className="stat-info">
-              <p className="stat-label">Calibration Due</p>
+              <p className="stat-label">Maintenance</p>
               <p className="stat-value stat-value-orange">
-                {stats.calibrationDue}
+                {stats.maintenance}
               </p>
             </div>
             <div className="stat-icon stat-icon-orange">
@@ -290,7 +378,7 @@ export default function InstrumentManagement() {
           <div
             className="stat-bar stat-bar-orange"
             style={{
-              width: `${stats.total ? (stats.calibrationDue / stats.total) * 100 : 0}%`,
+              width: `${stats.total ? (stats.maintenance / stats.total) * 100 : 0}%`,
             }}
           />
         </div>
@@ -343,9 +431,9 @@ export default function InstrumentManagement() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Calibration Due">Calibration Due</option>
-                <option value="Faulty">Faulty</option>
+                <option value="operational">Active</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="faulty">Faulty/Inactive</option>
               </select>
             </div>
 
@@ -355,10 +443,15 @@ export default function InstrumentManagement() {
               onChange={(e) => setTypeFilter(e.target.value)}
             >
               <option value="">All Types</option>
-              <option value="Pressure Transmitter">Pressure Transmitter</option>
-              <option value="Flow Meter">Flow Meter</option>
-              <option value="Temperature Sensor">Temperature Sensor</option>
-              <option value="Level Transmitter">Level Transmitter</option>
+              <option value="pressure">Pressure</option>
+              <option value="temperature">Temperature</option>
+              <option value="flow">Flow</option>
+              <option value="level">Level</option>
+              <option value="analytical">Analytical</option>
+              <option value="safety">Safety</option>
+              <option value="control">Control</option>
+              <option value="monitoring">Monitoring</option>
+              <option value="other">Other</option>
             </select>
 
             {hasActiveFilters && (
@@ -377,10 +470,21 @@ export default function InstrumentManagement() {
               <span className="filter-tag">Search: "{searchQuery}"</span>
             )}
             {statusFilter && (
-              <span className="filter-tag">Status: {statusFilter}</span>
+              <span className="filter-tag">
+                Status:{" "}
+                {statusFilter === "operational"
+                  ? "Active"
+                  : statusFilter === "maintenance"
+                    ? "Maintenance"
+                    : statusFilter === "faulty"
+                      ? "Faulty/Inactive"
+                      : statusFilter}
+              </span>
             )}
             {typeFilter && (
-              <span className="filter-tag">Type: {typeFilter}</span>
+              <span className="filter-tag">
+                Type: {typeFilter.charAt(0).toUpperCase() + typeFilter.slice(1)}
+              </span>
             )}
           </div>
         )}
@@ -527,11 +631,7 @@ export default function InstrumentManagement() {
                           <button
                             className="btn-icon btn-edit"
                             title="Edit"
-                            onClick={() =>
-                              navigate(
-                                `/app/instrument/${instrument.id || instrument._id || instrument.tagId}`,
-                              )
-                            }
+                            onClick={() => handleEditClick(instrument)}
                           >
                             <FaEdit />
                           </button>
@@ -609,9 +709,13 @@ export default function InstrumentManagement() {
           >
             <div className="modal-header">
               <div>
-                <h2>Register New Instrument</h2>
+                <h2>
+                  {editTarget ? "Edit Instrument" : "Register New Instrument"}
+                </h2>
                 <p className="modal-subtitle">
-                  Add a new instrument to the registry
+                  {editTarget
+                    ? "Update instrument information"
+                    : "Add a new instrument to the registry"}
                 </p>
               </div>
               <button className="modal-close" onClick={handleCancel}>
@@ -653,18 +757,15 @@ export default function InstrumentManagement() {
                         required
                       >
                         <option value="">Select Type</option>
-                        <option value="Pressure Transmitter">
-                          Pressure Transmitter
-                        </option>
-                        <option value="Flow Meter">Flow Meter</option>
-                        <option value="Temperature Sensor">
-                          Temperature Sensor
-                        </option>
-                        <option value="Level Transmitter">
-                          Level Transmitter
-                        </option>
-                        <option value="Control Valve">Control Valve</option>
-                        <option value="Safety Valve">Safety Valve</option>
+                        <option value="pressure">Pressure</option>
+                        <option value="temperature">Temperature</option>
+                        <option value="flow">Flow</option>
+                        <option value="level">Level</option>
+                        <option value="analytical">Analytical</option>
+                        <option value="safety">Safety</option>
+                        <option value="control">Control</option>
+                        <option value="monitoring">Monitoring</option>
+                        <option value="other">Other</option>
                       </select>
                     </div>
 
@@ -717,6 +818,20 @@ export default function InstrumentManagement() {
                         onChange={handleInputChange}
                         required
                       />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Status</label>
+                      <select
+                        name="status"
+                        className="form-select"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                      >
+                        <option value="operational">Active</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="faulty">Faulty/Inactive</option>
+                      </select>
                     </div>
                   </div>
 
@@ -817,11 +932,25 @@ export default function InstrumentManagement() {
                   type="button"
                   className="btn-cancel"
                   onClick={handleCancel}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-submit">
-                  <FaPlus /> Save Instrument
+                <button
+                  type="submit"
+                  className="btn-submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <FaSync className="spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus />{" "}
+                      {editTarget ? "Update Instrument" : "Save Instrument"}
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -854,14 +983,24 @@ export default function InstrumentManagement() {
               <button
                 className="btn-cancel"
                 onClick={() => setShowDeleteModal(false)}
+                disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 className="btn-delete-confirm"
                 onClick={handleDeleteConfirm}
+                disabled={isSubmitting}
               >
-                <FaTrash /> Delete
+                {isSubmitting ? (
+                  <>
+                    <FaSync className="spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <FaTrash /> Delete
+                  </>
+                )}
               </button>
             </div>
           </div>

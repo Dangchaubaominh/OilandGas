@@ -52,8 +52,18 @@ export function TopBar() {
           className="flex items-center gap-3 cursor-pointer hover:bg-[var(--hover-subtle)] p-2 rounded-lg transition-all"
         >
           {/* Avatar */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2545b8] to-blue-400 flex items-center justify-center text-white font-bold text-sm shadow-md border border-[var(--border-muted)]">
-            {userInfo?.email ? userInfo.email.charAt(0).toUpperCase() : "G"}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2545b8] to-blue-400 flex items-center justify-center text-white font-bold text-sm shadow-md border border-[var(--border-muted)] overflow-hidden">
+            {userInfo?.avatar_url ? (
+              <img
+                src={userInfo.avatar_url}
+                alt="User Avatar"
+                className="w-full h-full object-cover"
+              />
+            ) : userInfo?.email ? (
+              userInfo.email.charAt(0).toUpperCase()
+            ) : (
+              "G"
+            )}
           </div>
           {/* Thông tin tên và chức vụ (Ẩn trên màn hình nhỏ) */}
           <div className="hidden md:flex flex-col">

@@ -31,8 +31,8 @@ export default function UserTable({
   onDelete,
   onRestore,
   // NEW PROPS FOR PAGINATION
-  pagination, 
-  onPageChange
+  pagination,
+  onPageChange,
 }) {
   if (isLoading) {
     return (
@@ -72,7 +72,10 @@ export default function UserTable({
 
   return (
     <div className="table-container">
-      <table className="data-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table
+        className="data-table"
+        style={{ width: "100%", borderCollapse: "collapse" }}
+      >
         <thead>
           <tr>
             <th>USER ID / CODE</th>
@@ -100,16 +103,20 @@ export default function UserTable({
             </tr>
           ) : (
             filteredUsers?.map((user) => {
-              const userId = user._id || user.id;
+              const userCode = user.userCode;
               // Safe fallbacks so the app doesn't crash if a user is missing data
-              const userName = user.name || <span style={{ fontStyle: "italic", color: "#64748b" }}>Not set</span>;
-              const isSelf = currentUser?._id === userId || currentUser?.id === userId;
+              const userName = user.name || (
+                <span style={{ fontStyle: "italic", color: "#64748b" }}>
+                  Not set
+                </span>
+              );
+              const isSelf = currentUser?.userCode === userCode;
 
               return (
-                <tr key={userId}>
+                <tr key={userCode}>
                   <td>
-                    {/* Displays userCode if available, otherwise falls back to a shortened _id */}
-                    <span title={userId}>{user.userCode || String(userId).substring(0, 8)}...</span>
+                    {/* Displays userCode */}
+                    <span title={userCode}>{userCode}</span>
                   </td>
                   <td>{userName}</td>
                   <td>{user.phone || "-"}</td>
@@ -120,7 +127,9 @@ export default function UserTable({
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${getStatusBadgeClass(user.status)}`}>
+                    <span
+                      className={`badge ${getStatusBadgeClass(user.status)}`}
+                    >
                       {user.status || "N/A"}
                     </span>
                   </td>
@@ -131,7 +140,9 @@ export default function UserTable({
                           <button
                             className="btn-icon btn-restore"
                             title="Restore User"
-                            onClick={() => onRestore(userId, user.name || user.email)}
+                            onClick={() =>
+                              onRestore(userCode, user.name || user.email)
+                            }
                           >
                             <FaUndo />
                           </button>
@@ -151,7 +162,9 @@ export default function UserTable({
                                   ? "You cannot delete your own account"
                                   : "Delete User"
                               }
-                              onClick={() => onDelete(userId, user.name || user.email)}
+                              onClick={() =>
+                                onDelete(userCode, user.name || user.email)
+                              }
                               disabled={isSelf}
                               style={{
                                 opacity: isSelf ? 0.3 : 1,
@@ -173,47 +186,59 @@ export default function UserTable({
 
       {/* --- NEW PAGINATION CONTROLS --- */}
       {pagination && pagination.totalPages > 1 && (
-        <div 
-          style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
             alignItems: "center",
             padding: "16px",
             borderTop: "1px solid rgba(255,255,255,0.1)",
-            marginTop: "16px"
+            marginTop: "16px",
           }}
         >
-          <button 
+          <button
             onClick={() => onPageChange(pagination.currentPage - 1)}
             disabled={pagination.currentPage <= 1}
             style={{
               padding: "8px 16px",
-              backgroundColor: pagination.currentPage <= 1 ? "transparent" : "rgba(59, 130, 246, 0.1)",
+              backgroundColor:
+                pagination.currentPage <= 1
+                  ? "transparent"
+                  : "rgba(59, 130, 246, 0.1)",
               color: pagination.currentPage <= 1 ? "#64748b" : "#60a5fa",
               border: `1px solid ${pagination.currentPage <= 1 ? "#334155" : "rgba(59, 130, 246, 0.3)"}`,
               borderRadius: "6px",
               cursor: pagination.currentPage <= 1 ? "not-allowed" : "pointer",
-              transition: "all 0.2s"
+              transition: "all 0.2s",
             }}
           >
             Previous
           </button>
-          
+
           <span style={{ color: "#94a3b8", fontSize: "14px" }}>
             Page {pagination.currentPage} of {pagination.totalPages}
           </span>
-          
-          <button 
+
+          <button
             onClick={() => onPageChange(pagination.currentPage + 1)}
             disabled={pagination.currentPage >= pagination.totalPages}
             style={{
               padding: "8px 16px",
-              backgroundColor: pagination.currentPage >= pagination.totalPages ? "transparent" : "rgba(59, 130, 246, 0.1)",
-              color: pagination.currentPage >= pagination.totalPages ? "#64748b" : "#60a5fa",
+              backgroundColor:
+                pagination.currentPage >= pagination.totalPages
+                  ? "transparent"
+                  : "rgba(59, 130, 246, 0.1)",
+              color:
+                pagination.currentPage >= pagination.totalPages
+                  ? "#64748b"
+                  : "#60a5fa",
               border: `1px solid ${pagination.currentPage >= pagination.totalPages ? "#334155" : "rgba(59, 130, 246, 0.3)"}`,
               borderRadius: "6px",
-              cursor: pagination.currentPage >= pagination.totalPages ? "not-allowed" : "pointer",
-              transition: "all 0.2s"
+              cursor:
+                pagination.currentPage >= pagination.totalPages
+                  ? "not-allowed"
+                  : "pointer",
+              transition: "all 0.2s",
             }}
           >
             Next
