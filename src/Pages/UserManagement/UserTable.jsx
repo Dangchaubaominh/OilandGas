@@ -1,11 +1,5 @@
 import { FaEdit, FaTrash, FaUndo } from "react-icons/fa";
 
-const VIEW_MODES = {
-  ACTIVE: "active",
-  DELETED: "deleted",
-  ALL: "all",
-};
-
 const getRoleBadgeClass = (role) => {
   const lowerRole = (role || "").toLowerCase();
 
@@ -16,15 +10,16 @@ const getRoleBadgeClass = (role) => {
   return "";
 };
 
-const getStatusBadgeClass = (status) => {
-  return status?.toLowerCase() === "active" ? "badge-active" : "badge-locked";
+const getStatusBadgeClass = (status, isDeleted) => {
+  if (isDeleted) return "badge-deleted";
+  return status?.toLowerCase() === "active" ? "badge-active" : "badge-inactive";
 };
 
 export default function UserTable({
   isLoading,
   filteredUsers,
   searchQuery,
-  viewMode,
+  statusFilter,
   isAdmin,
   currentUser,
   onEdit,
@@ -103,20 +98,24 @@ export default function UserTable({
             </tr>
           ) : (
             filteredUsers?.map((user) => {
-              const userCode = user.userCode;
+              const rowUserCode = user.userCode || user._id || user.id;
+              const actionUserId = user._id || user.id || user.userCode;
               // Safe fallbacks so the app doesn't crash if a user is missing data
               const userName = user.name || (
                 <span style={{ fontStyle: "italic", color: "#64748b" }}>
                   Not set
                 </span>
               );
-              const isSelf = currentUser?.userCode === userCode;
+              const isSelf =
+                (currentUser?.userCode &&
+                  currentUser.userCode === user.userCode) ||
+                (currentUser?._id && currentUser._id === user._id);
 
               return (
-                <tr key={userCode}>
+                <tr key={rowUserCode}>
                   <td>
                     {/* Displays userCode */}
-                    <span title={userCode}>{userCode}</span>
+                    <span title={rowUserCode}>{rowUserCode}</span>
                   </td>
                   <td>{userName}</td>
                   <td>{user.phone || "-"}</td>
@@ -128,20 +127,20 @@ export default function UserTable({
                   </td>
                   <td>
                     <span
-                      className={`badge ${getStatusBadgeClass(user.status)}`}
+                      className={`badge ${getStatusBadgeClass(user.status, user.deletedAt)}`}
                     >
-                      {user.status || "N/A"}
+                      {user.deletedAt ? "Deleted" : user.status || "N/A"}
                     </span>
                   </td>
                   <td>
                     <div className="action-buttons">
                       {isAdmin &&
-                        (viewMode === VIEW_MODES.DELETED ? (
+                        (user.deletedAt ? (
                           <button
                             className="btn-icon btn-restore"
                             title="Restore User"
                             onClick={() =>
-                              onRestore(userCode, user.name || user.email)
+                              onRestore(actionUserId, user.name || user.email)
                             }
                           >
                             <FaUndo />
@@ -163,7 +162,7 @@ export default function UserTable({
                                   : "Delete User"
                               }
                               onClick={() =>
-                                onDelete(userCode, user.name || user.email)
+                                onDelete(actionUserId, user.name || user.email)
                               }
                               disabled={isSelf}
                               style={{

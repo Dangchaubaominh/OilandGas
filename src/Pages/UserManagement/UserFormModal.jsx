@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { createUserSchema, editUserSchema } from "../../schemas/userSchema";
+import { createUserSchema, updateUserSchema } from "../../schemas/userSchema";
 import { FaTimes, FaUserPlus, FaSave } from "react-icons/fa";
 
 export default function UserFormModal({
@@ -14,7 +14,7 @@ export default function UserFormModal({
 }) {
   // Select schema based on mode
   const schema = useMemo(
-    () => (isEditMode ? editUserSchema : createUserSchema),
+    () => (isEditMode ? updateUserSchema : createUserSchema),
     [isEditMode],
   );
 
@@ -98,36 +98,31 @@ export default function UserFormModal({
               )}
             </div>
 
-            {/* Password */}
-            <div className="form-group">
-              <label>
-                Password {isEditMode ? "(leave blank to keep current)" : "*"}
-              </label>
-              <input
-                type="password"
-                className="form-input"
-                placeholder={
-                  isEditMode
-                    ? "Enter new password (optional)"
-                    : "Enter password"
-                }
-                {...register("password")}
-                disabled={isSaving}
-                style={{ borderColor: errors.password ? "#ef4444" : "" }}
-              />
-              {errors.password && (
-                <span
-                  style={{
-                    color: "#ef4444",
-                    fontSize: "12px",
-                    marginTop: "4px",
-                    display: "block",
-                  }}
-                >
-                  {errors.password.message}
-                </span>
-              )}
-            </div>
+            {!isEditMode && (
+              <div className="form-group">
+                <label>Password *</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Enter password"
+                  {...register("password")}
+                  disabled={isSaving}
+                  style={{ borderColor: errors.password ? "#ef4444" : "" }}
+                />
+                {errors.password && (
+                  <span
+                    style={{
+                      color: "#ef4444",
+                      fontSize: "12px",
+                      marginTop: "4px",
+                      display: "block",
+                    }}
+                  >
+                    {errors.password.message}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Phone Number */}
             <div className="form-group">
@@ -187,14 +182,8 @@ export default function UserFormModal({
                 className="form-input"
                 placeholder="user@example.com"
                 {...register("email")}
-                disabled={isSaving || isEditMode} // Không cho đổi Email khi Edit
-                style={{
-                  borderColor: errors.email ? "#ef4444" : "",
-                  backgroundColor: isEditMode
-                    ? "rgba(255,255,255,0.05)"
-                    : "transparent",
-                  color: isEditMode ? "#94a3b8" : "inherit",
-                }}
+                disabled={isSaving}
+                style={{ borderColor: errors.email ? "#ef4444" : "" }}
               />
               {errors.email && (
                 <span
@@ -238,45 +227,46 @@ export default function UserFormModal({
               )}
             </div>
 
-            {/* Account Status Toggle */}
-            <div className="form-group">
-              <label>Account Status</label>
-              <div className="toggle-field">
-                <span
-                  className={
-                    currentStatus === "inactive"
-                      ? "toggle-label active"
-                      : "toggle-label"
-                  }
-                >
-                  Inactive
-                </span>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={currentStatus === "active"}
-                    onChange={(e) =>
-                      setValue(
-                        "status",
-                        e.target.checked ? "active" : "inactive",
-                        { shouldValidate: true },
-                      )
+            {isEditMode && (
+              <div className="form-group">
+                <label>Account Status</label>
+                <div className="toggle-field">
+                  <span
+                    className={
+                      currentStatus === "inactive"
+                        ? "toggle-label active"
+                        : "toggle-label"
                     }
-                    disabled={isSaving}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-                <span
-                  className={
-                    currentStatus === "active"
-                      ? "toggle-label active"
-                      : "toggle-label"
-                  }
-                >
-                  Active
-                </span>
+                  >
+                    Inactive
+                  </span>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={currentStatus === "active"}
+                      onChange={(e) =>
+                        setValue(
+                          "status",
+                          e.target.checked ? "active" : "inactive",
+                          { shouldValidate: true },
+                        )
+                      }
+                      disabled={isSaving}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                  <span
+                    className={
+                      currentStatus === "active"
+                        ? "toggle-label active"
+                        : "toggle-label"
+                    }
+                  >
+                    Active
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Footer Actions */}

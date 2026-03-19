@@ -62,33 +62,94 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   font-size: 14px;
 }
 
+.btn-icon:active {
+  transform: scale(0.96);
+}
+
 .btn-edit {
-  background: transparent;
-  color: #60a5fa;
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.2),
+    rgba(96, 165, 250, 0.08)
+  );
+  color: #93c5fd;
+  border: 1px solid rgba(37, 99, 235, 0.4);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12) inset;
 }
 
 .btn-edit:hover {
-  background: rgba(37, 99, 235, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.3),
+    rgba(96, 165, 250, 0.15)
+  );
+  color: #bfdbfe;
+  transform: translateY(-1px);
 }
 
 .btn-delete {
-  background: transparent;
-  color: #f87171;
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.2),
+    rgba(248, 113, 113, 0.08)
+  );
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12) inset;
 }
 
 .btn-delete:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.32),
+    rgba(248, 113, 113, 0.15)
+  );
+  color: #fecaca;
+  transform: translateY(-1px);
+}
+
+.btn-restore {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.2),
+    rgba(52, 211, 153, 0.08)
+  );
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12) inset;
+}
+
+.btn-restore:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.3),
+    rgba(52, 211, 153, 0.15)
+  );
+  color: #a7f3d0;
+  transform: translateY(-1px);
 }
 
 .btn-view {
-  background: transparent;
-  color: #34d399;
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.2),
+    rgba(52, 211, 153, 0.08)
+  );
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12) inset;
 }
 
 .btn-view:hover {
-  background: rgba(16, 185, 129, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.3),
+    rgba(52, 211, 153, 0.15)
+  );
+  color: #a7f3d0;
+  transform: translateY(-1px);
 }

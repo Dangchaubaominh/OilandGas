@@ -552,7 +552,9 @@ export default function InstrumentManagement() {
                       <td>
                         <span className="tag-id">
                           {instrument.tagId ||
-                            (instrument.id || instrument._id)?.substring(0, 8)}
+                            String(
+                              instrument.id || instrument._id || "",
+                            ).substring(0, 8)}
                         </span>
                       </td>
                       <td>

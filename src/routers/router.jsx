@@ -1,15 +1,14 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute from "./PrivateRoute";
 import MainLayout from "../layouts/MainLayouts";
-import Dashboard from "../Pages/Management/DashBoard";
+import Dashboard from "../Pages/Dashboard/DashBoard";
 import UserManagement from "../Pages/UserManagement/UserManagement";
 import RoleManagement from "../Pages/Management/RoleManagement";
 import InstrumentManagement from "../Pages/Instrument/InstrumentManagement";
-import UserDetail from "../Pages/Management/UserDetail";
-import Reports from "../Pages/Management/Reports";
+import Reports from "../Pages/Reports/Reports";
 import Schedule from "../Pages/Management/Schedule";
 import Settings from "../Pages//Setting/Settings";
-import WarehouseInventory from "../Pages/Management/WarehouseInventory";
+import WarehouseInventory from "../Pages/Warehouse/WarehouseInventory";
 import Simulator from "../Pages/Stimulator/Simulator";
 import EquipmentControl from "../Pages/Equipment/EquipmentControl";
 import Login from "../Pages/Auth/Login";
@@ -61,10 +60,6 @@ export const router = createBrowserRouter([
       {
         path: "roles",
         element: <RoleManagement />,
-      },
-      {
-        path: "users/:id",
-        element: <UserDetail />,
       },
       {
         path: "inventory",

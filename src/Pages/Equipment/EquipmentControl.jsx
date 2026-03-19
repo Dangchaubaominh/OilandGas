@@ -523,7 +523,7 @@ export default function EquipmentControl() {
                     <tr key={item.id || item._id} className="equipment-row">
                       <td>
                         <span className="tag-id">
-                          {(item.id || item._id)?.substring(0, 8)}
+                          {String(item.id || item._id || "").substring(0, 8)}
                         </span>
                       </td>
                       <td>

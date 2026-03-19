@@ -190,7 +190,9 @@ export default function EquipmentDetail() {
               <div className="spec-item">
                 <label>Equipment ID</label>
                 <span>
-                  {equipment.id || equipment._id?.substring(0, 8) || "-"}
+                  {equipment.id ||
+                    String(equipment._id || "").substring(0, 8) ||
+                    "-"}
                 </span>
               </div>
               <div className="spec-item">

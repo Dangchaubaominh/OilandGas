@@ -6,12 +6,6 @@ import UserFilters from "./UserFilters";
 import UserTable from "./UserTable";
 import UserFormModal from "./UserFormModal";
 
-const VIEW_MODES = {
-  ACTIVE: "active",
-  DELETED: "deleted",
-  ALL: "all",
-};
-
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,11 +14,17 @@ export default function UserManagement() {
   const currentUser = useAuthStore((state) => state.user);
   const isAdmin = currentUser?.role?.toLowerCase() === "admin";
 
-  const [viewMode, setViewMode] = useState(VIEW_MODES.ACTIVE);
   const [showModal, setShowModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   const [modalDefaults, setModalDefaults] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    action: null,
+    userId: null,
+    userName: "",
+    isProcessing: false,
+  });
 
   // --- STATES FOR FILTERS & PAGINATION ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,22 +42,24 @@ export default function UserManagement() {
     async (page = 1) => {
       setIsLoading(true);
       try {
-        // Chuẩn bị tham số gọi API Server
-        const params = {
+        const baseParams = {
           page,
           limit: pagination.limit,
           search: searchQuery.trim() || undefined,
           role: roleFilter !== "all" ? roleFilter : undefined,
-          status: statusFilter !== "all" ? statusFilter : undefined,
         };
 
         let response;
-        if (viewMode === VIEW_MODES.DELETED) {
-          response = await userApi.getDeletedUsers(params);
-        } else if (viewMode === VIEW_MODES.ALL) {
-          response = await userApi.getAllUsersMixed(params);
+
+        if (statusFilter === "deleted") {
+          response = await userApi.getUsersDeleted(baseParams);
+        } else if (statusFilter === "all") {
+          response = await userApi.getUsersAll(baseParams);
         } else {
-          response = await userApi.getAllUsers(params);
+          response = await userApi.getActiveUsers({
+            ...baseParams,
+            status: statusFilter,
+          });
         }
 
         const resData = response.data?.data || response.data || response;
@@ -79,7 +81,7 @@ export default function UserManagement() {
         setIsLoading(false);
       }
     },
-    [viewMode, searchQuery, roleFilter, statusFilter, pagination.limit],
+    [searchQuery, roleFilter, statusFilter, pagination.limit],
   );
 
   // Tự động gọi API khi filter thay đổi (Debounce được xử lý ngầm bởi useCallback dependencies)
@@ -94,23 +96,31 @@ export default function UserManagement() {
   const onSubmitForm = async (data) => {
     setIsSaving(true);
     try {
-      const payload = {
-        email: data.email,
-        name: data.name,
-        phone: data.phone,
-        department: data.department,
-        role: data.role === "Administrator" ? "admin" : data.role.toLowerCase(),
-      };
+      let payload = {};
 
       if (isEditMode) {
-        payload.status = data.status;
-        if (data.password) {
-          payload.password = data.password;
-        }
+        // Update form fields follow PUT /users/{id} body
+        payload = {
+          name: data.name?.trim(),
+          email: data.email?.trim().toLowerCase(),
+          phone: data.phone?.trim(),
+          department: data.department?.trim(),
+          role: (data.role || "").toLowerCase(),
+          status: data.status === "inactive" ? "inactive" : "active",
+        };
+
         await userApi.updateUser(editingUserId, payload);
-        showToast("success", `Updated user "${data.name}" successfully!`);
+        showToast("success", `Updated user successfully!`);
       } else {
-        payload.password = data.password;
+        // Create form fields follow POST /users body
+        payload = {
+          email: data.email,
+          name: data.name,
+          phone: data.phone,
+          department: data.department,
+          role: data.role,
+          password: data.password,
+        };
         await userApi.createUser(payload);
         showToast("success", `Created new user "${data.name}" successfully!`);
       }
@@ -131,17 +141,15 @@ export default function UserManagement() {
 
   const handleEdit = (user) => {
     setIsEditMode(true);
-    setEditingUserId(user.userCode); // Use userCode as identifier
+    // Update API expects id path param as Mongo ObjectId
+    setEditingUserId(user._id || user.id || user.userCode);
     setModalDefaults({
       name: user.name || "",
       email: user.email || "",
       password: "",
       phone: user.phone || "",
       department: user.department || "",
-      role:
-        user.role === "admin"
-          ? "Administrator"
-          : user.role?.charAt(0).toUpperCase() + user.role?.slice(1),
+      role: user.role?.toLowerCase() || "",
       status: user.status?.toLowerCase() || "active",
     });
     setShowModal(true);
@@ -162,45 +170,61 @@ export default function UserManagement() {
     setShowModal(true);
   };
 
+  const openConfirmModal = (action, userId, userName) => {
+    setConfirmModal({
+      isOpen: true,
+      action,
+      userId,
+      userName: userName || "Unknown",
+      isProcessing: false,
+    });
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModal({
+      isOpen: false,
+      action: null,
+      userId: null,
+      userName: "",
+      isProcessing: false,
+    });
+  };
+
   const handleDelete = async (userId, userName) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete user "${userName || "Unknown"}"?`,
-      )
-    )
-      return;
-    try {
-      await userApi.deleteUser(userId);
-      await fetchUsers(1); // Sau khi xóa nên đưa về trang 1
-      showToast(
-        "success",
-        `Deleted user "${userName || "Unknown"}" successfully!`,
-      );
-    } catch (err) {
-      const errorMsg =
-        err.response?.data?.message || err.message || "Failed to delete user.";
-      showToast("error", `Failed to delete user: ${errorMsg}`);
-    }
+    openConfirmModal("delete", userId, userName);
   };
 
   const handleRestore = async (userId, userName) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to restore user "${userName || "Unknown"}"?`,
-      )
-    )
-      return;
+    openConfirmModal("restore", userId, userName);
+  };
+
+  const handleConfirmAction = async () => {
+    const { action, userId, userName } = confirmModal;
+    if (!action || !userId) return;
+
+    setConfirmModal((prev) => ({ ...prev, isProcessing: true }));
+
     try {
-      await userApi.restoreUser(userId);
-      await fetchUsers(1);
-      showToast(
-        "success",
-        `Restored user "${userName || "Unknown"}" successfully!`,
-      );
+      if (action === "delete") {
+        await userApi.deleteUser(userId);
+        await fetchUsers(1); // Sau khi xóa nên đưa về trang 1
+        showToast("success", `Deleted user "${userName}" successfully!`);
+      }
+
+      if (action === "restore") {
+        await userApi.restoreUser(userId);
+        await fetchUsers(1);
+        showToast("success", `Restored user "${userName}" successfully!`);
+      }
+
+      closeConfirmModal();
     } catch (err) {
       const errorMsg =
-        err.response?.data?.message || err.message || "Failed to restore user.";
-      showToast("error", `Failed to restore user: ${errorMsg}`);
+        err.response?.data?.message ||
+        err.message ||
+        `Failed to ${action} user.`;
+      showToast("error", `Failed to ${action} user: ${errorMsg}`);
+      setConfirmModal((prev) => ({ ...prev, isProcessing: false }));
     }
   };
 
@@ -213,8 +237,6 @@ export default function UserManagement() {
   return (
     <div className="user-management">
       <UserFilters
-        viewMode={viewMode}
-        setViewMode={setViewMode}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         roleFilter={roleFilter}
@@ -233,13 +255,12 @@ export default function UserManagement() {
         isLoading={isLoading}
         filteredUsers={users}
         searchQuery={searchQuery}
-        viewMode={viewMode}
+        statusFilter={statusFilter}
         isAdmin={isAdmin}
         currentUser={currentUser}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onRestore={handleRestore}
-        // Thêm các hàm truyền xuống cho UserTable nếu file UserTable của bạn có xử lý nút Next/Prev
         pagination={pagination}
         onPageChange={(newPage) => fetchUsers(newPage)}
       />
@@ -253,6 +274,73 @@ export default function UserManagement() {
         isSaving={isSaving}
         defaultValues={modalDefaults}
       />
+
+      {confirmModal.isOpen && (
+        <div className="modal-overlay" onClick={closeConfirmModal}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: "440px", width: "90%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <h2>
+                  {confirmModal.action === "delete"
+                    ? "Confirm Delete"
+                    : "Confirm Restore"}
+                </h2>
+                <p className="modal-subtitle">
+                  {confirmModal.action === "delete"
+                    ? `Are you sure you want to delete user \"${confirmModal.userName}\"?`
+                    : `Are you sure you want to restore user \"${confirmModal.userName}\"?`}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="modal-footer"
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={closeConfirmModal}
+                disabled={confirmModal.isProcessing}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-submit"
+                onClick={handleConfirmAction}
+                disabled={confirmModal.isProcessing}
+                style={{
+                  backgroundColor:
+                    confirmModal.action === "delete"
+                      ? "rgba(239, 68, 68, 0.2)"
+                      : "rgba(34, 197, 94, 0.2)",
+                  borderColor:
+                    confirmModal.action === "delete"
+                      ? "rgba(239, 68, 68, 0.5)"
+                      : "rgba(34, 197, 94, 0.5)",
+                  color:
+                    confirmModal.action === "delete" ? "#fca5a5" : "#86efac",
+                }}
+              >
+                {confirmModal.isProcessing
+                  ? "Processing..."
+                  : confirmModal.action === "delete"
+                    ? "Delete"
+                    : "Restore"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
