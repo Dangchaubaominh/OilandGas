@@ -13,6 +13,7 @@ export default function UserFilters({
   totalCount,
   onReload,
   onCreate,
+  roles = [],
 }) {
   return (
     <>
@@ -116,9 +117,11 @@ export default function UserFilters({
             onChange={(e) => setRoleFilter(e.target.value)}
           >
             <option value="all">Role: All</option>
-            <option value="admin">Admin</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="engineer">Engineer</option>
+            {roles.map((role) => (
+              <option key={role._id || role.key} value={role.key}>
+                {role.name}
+              </option>
+            ))}
           </select>
           <select
             className="filter-select"

@@ -3,25 +3,26 @@ import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import useAuthStore from "../store/useAuthStore";
 import "./sidebar.css";
-import {
-  FaTachometerAlt,
-  FaUsers,
-  FaUserShield,
-  FaWarehouse,
-  FaCube,
-  FaTools,
-  FaCalendar,
-  FaChartBar,
-  FaCog,
-  FaSignOutAlt,
-} from "react-icons/fa";
+import { FaCog, FaSignOutAlt } from "react-icons/fa";
+import { SidebarConfig } from "./SidebarConfig";
+import { getUserPermissions, hasPermission } from "../utils/permissionHelper";
 
 export default function SideBar() {
   const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   // Biến chứa class mặc định cho tất cả các nút menu để code gọn gàng hơn
   const baseNavClass =
     "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200";
+
+  const userPermissions = getUserPermissions(user);
+
+  const visibleSections = SidebarConfig.map((section) => ({
+    ...section,
+    items: section.items.filter((item) =>
+      hasPermission(userPermissions, item.permission),
+    ),
+  })).filter((section) => section.items.length > 0);
 
   // Hàm xử lý khi bấm nút Logout
   const handleLogout = () => {
@@ -51,107 +52,33 @@ export default function SideBar() {
 
       {/* Navigation: Khu vực cuộn chính chứa các menu */}
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        {/* Nhóm Main Menu */}
-        <div className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3 px-4 mt-2">
-          Main Menu
-        </div>
+        {visibleSections.map((section, sectionIndex) => (
+          <React.Fragment key={section.category}>
+            <div
+              className={`text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3 px-4 ${sectionIndex > 0 ? "mt-8" : "mt-2"}`}
+            >
+              {section.category}
+            </div>
 
-        <NavLink
-          to="/app/dashboard"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaTachometerAlt className="text-lg" /> <span>Dashboard</span>
-        </NavLink>
-        <NavLink
-          to="/app/users"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaUsers className="text-lg" /> <span>User Management</span>
-        </NavLink>
-        <NavLink
-          to="/app/roles"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaUserShield className="text-lg" /> <span>Role Management</span>
-        </NavLink>
+            {section.items.map((item) => {
+              const Icon = item.icon;
 
-        {/* Nhóm Operations */}
-        <div className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3 px-4 mt-8">
-          Operations
-        </div>
-
-        <NavLink
-          to="/app/inventory"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaWarehouse className="text-lg" /> <span>Warehouse Inventory</span>
-        </NavLink>
-        <NavLink
-          to="/app/simulator"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaCube className="text-lg" /> <span>3D Simulator</span>
-        </NavLink>
-        <NavLink
-          to="/app/instrument"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaTools className="text-lg" /> <span>Instrument Management</span>
-        </NavLink>
-        <NavLink
-          to="/app/equipment"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaTools className="text-lg" /> <span>Equipment Control</span>
-        </NavLink>
-        <NavLink
-          to="/app/schedule"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaCalendar className="text-lg" /> <span>Maintenance Schedule</span>
-        </NavLink>
-        <NavLink
-          to="/app/reports"
-          className={({ isActive }) =>
-            isActive
-              ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
-              : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
-          }
-        >
-          <FaChartBar className="text-lg" /> <span>Reports</span>
-        </NavLink>
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    isActive
+                      ? `${baseNavClass} bg-[var(--sidebar-active)] text-white shadow-md`
+                      : `${baseNavClass} text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]`
+                  }
+                >
+                  <Icon className="text-lg" /> <span>{item.title}</span>
+                </NavLink>
+              );
+            })}
+          </React.Fragment>
+        ))}
       </nav>
 
       {/* Footer: Cố định phía dưới cùng */}

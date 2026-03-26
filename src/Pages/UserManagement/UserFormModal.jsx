@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { createUserSchema, updateUserSchema } from "../../schemas/userSchema";
-import { FaTimes, FaUserPlus, FaSave } from "react-icons/fa";
+import { FaTimes, FaUserPlus, FaSave, FaEye, FaEyeSlash } from "react-icons/fa";
+import roleApi from "../../services/roleApi";
 
 export default function UserFormModal({
   isOpen,
@@ -31,6 +32,7 @@ export default function UserFormModal({
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
       phone: "",
       department: "",
       role: "",
@@ -39,6 +41,28 @@ export default function UserFormModal({
   });
 
   const currentStatus = watch("status");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [roles, setRoles] = useState([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
+
+  // Fetch roles from API
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        setLoadingRoles(true);
+        const response = await roleApi.getRoles();
+        const rolesList = response.data?.data || response.data || [];
+        setRoles(Array.isArray(rolesList) ? rolesList : []);
+      } catch (err) {
+        console.error("Error fetching roles:", err);
+        setRoles([]);
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   // Reset form khi Modal mở ra hoặc khi defaultValues thay đổi
   useEffect(() => {
@@ -99,29 +123,105 @@ export default function UserFormModal({
             </div>
 
             {!isEditMode && (
-              <div className="form-group">
-                <label>Password *</label>
-                <input
-                  type="password"
-                  className="form-input"
-                  placeholder="Enter password"
-                  {...register("password")}
-                  disabled={isSaving}
-                  style={{ borderColor: errors.password ? "#ef4444" : "" }}
-                />
-                {errors.password && (
-                  <span
-                    style={{
-                      color: "#ef4444",
-                      fontSize: "12px",
-                      marginTop: "4px",
-                      display: "block",
-                    }}
-                  >
-                    {errors.password.message}
-                  </span>
-                )}
-              </div>
+              <>
+                <div className="form-group">
+                  <label>Password *</label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="form-input"
+                      placeholder="Enter password"
+                      {...register("password")}
+                      disabled={isSaving}
+                      style={{ borderColor: errors.password ? "#ef4444" : "" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isSaving}
+                      style={{
+                        position: "absolute",
+                        right: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#6b7280",
+                        padding: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <span
+                      style={{
+                        color: "#ef4444",
+                        fontSize: "12px",
+                        marginTop: "4px",
+                        display: "block",
+                      }}
+                    >
+                      {errors.password.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Confirm Password *</label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      className="form-input"
+                      placeholder="Re-enter password"
+                      {...register("confirmPassword")}
+                      disabled={isSaving}
+                      style={{
+                        borderColor: errors.confirmPassword ? "#ef4444" : "",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      disabled={isSaving}
+                      style={{
+                        position: "absolute",
+                        right: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#6b7280",
+                        padding: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <span
+                      style={{
+                        color: "#ef4444",
+                        fontSize: "12px",
+                        marginTop: "4px",
+                        display: "block",
+                      }}
+                    >
+                      {errors.confirmPassword.message}
+                    </span>
+                  )}
+                </div>
+              </>
             )}
 
             {/* Phone Number */}
@@ -205,13 +305,15 @@ export default function UserFormModal({
               <select
                 className="form-select"
                 {...register("role")}
-                disabled={isSaving}
+                disabled={isSaving || loadingRoles}
                 style={{ borderColor: errors.role ? "#ef4444" : "" }}
               >
-                <option value="">Select role</option>
-                <option value="admin">Administrator</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="engineer">Engineer</option>
+                <option value="">{loadingRoles ? "Loading roles..." : "Select role"}</option>
+                {roles.map((role) => (
+                  <option key={role._id || role.key} value={role.key}>
+                    {role.name}
+                  </option>
+                ))}
               </select>
               {errors.role && (
                 <span

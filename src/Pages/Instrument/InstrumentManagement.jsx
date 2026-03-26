@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaEdit,
+  FaUserCog,
+  FaCalendarPlus,
   FaTrash,
   FaPlus,
   FaSearch,
@@ -19,19 +21,27 @@ import {
   FaChevronRight,
   FaEye,
   FaTools,
+  FaClock,
+  FaFileContract,
   FaCalendarAlt,
 } from "react-icons/fa";
 import instrumentApi from "../../services/instrumentApi";
+import adminInstrumentApi from "../../services/adminInstrumentApi";
+import userApi from "../../services/userApi";
 import { showToast } from "../../utils/toastHandler";
+import useAuthStore from "../../store/useAuthStore";
 
 export default function InstrumentManagement() {
   const navigate = useNavigate();
-
-  // --- STATES CHO API & BỘ LỌC ---
+  const user = useAuthStore((state) => state.user);
+  const role = user?.role?.toLowerCase() || "";
+  
+  // --- STATES & HANDLERS ---
   const [instruments, setInstruments] = useState([]);
+  const [engineers, setEngineers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // States quản lý filter
+  // States quáº£n lĂ½ filter
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -44,10 +54,24 @@ export default function InstrumentManagement() {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [assignTarget, setAssignTarget] = useState(null);
+  const [maintenanceTarget, setMaintenanceTarget] = useState(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [selectedEngineer, setSelectedEngineer] = useState("");
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    type: "preventive",
+    date: "",
+    priority: "medium",
+    description: "",
+    engineerId: "",
+  });
+
   const [editTarget, setEditTarget] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    tagId: "",
+    name: "",
+    instrumentCode: "",
     instrumentType: "",
     manufacturer: "",
     modelNumber: "",
@@ -60,12 +84,130 @@ export default function InstrumentManagement() {
     rangeMin: "",
     rangeMax: "",
     unit: "",
+    status: "operational",
   });
 
+  const [stats, setStats] = useState({ total: 0, active: 0, maintenance: 0, faulty: 0 });
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await adminInstrumentApi.getStats();
+      if (response?.data) {
+        setStats(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  }, []);
+
   // --- FETCH DATA TỪ API ---
+
+  // --- DYNAMIC FORM LOGIC ---
+  const typeUnitMap = {
+    pressure: ["psi", "bar", "Pa", "kPa", "kg/cm2", "atm"],
+    temperature: ["°C", "°F", "K"],
+    flow: ["m3/h", "L/min", "kg/h", "gal/min", "Nm3/h"],
+    level: ["m", "cm", "mm", "%", "ft", "in"],
+    analytical: ["pH", "%", "ppm", "mg/L", "mg/m3"],
+    safety: ["%LEL", "ppm", "%Vol"],
+    control: ["%", "mA", "V"],
+    monitoring: ["V", "A", "Hz", "RPM"],
+    other: [],
+  };
+
+  const typeManufacturerMap = {
+    pressure: ["Emerson", "Rosemount", "WIKA", "Yokogawa", "Endress+Hauser", "Siemens"],
+    temperature: ["Endress+Hauser", "WIKA", "Emerson", "ABB", "Yokogawa", "Honeywell"],
+    flow: ["Micro Motion", "Krohne", "Endress+Hauser", "ABB", "Siemens", "Yokogawa"],
+    level: ["Vega", "Endress+Hauser", "Emerson", "Siemens", "Magnetrol"],
+    analytical: ["Hach", "Mettler Toledo", "Yokogawa", "Endress+Hauser", "Rosemount"],
+    safety: ["Dräger", "MSA Safety", "Crowcon", "Honeywell", "Det-Tronics"],
+    control: ["Fisher", "Masoneilan", "Flowserve", "Samson", "Metso"],
+    monitoring: ["Rockwell Automation", "Siemens", "ABB", "Schneider Electric"],
+    other: [],
+  };
+
+  const currentSuggestedUnits = typeUnitMap[formData.instrumentType] || [];
+  const currentSuggestedManufacturers = typeManufacturerMap[formData.instrumentType] || [];
+
+  // Helper to find next logical number/ID from existing strings (e.g. RA-001 -> RA-002)
+  const getNextSequence = (existingStrings, prefixDefault) => {
+    let maxNum = 0;
+    let foundStr = "";
+
+    existingStrings.forEach(str => {
+      if (!str) return;
+      const match = str.match(/(.*?)(\d+)$/);
+      if (match) {
+        const num = parseInt(match[2], 10);
+        if (num > maxNum) {
+          maxNum = num;
+          foundStr = str; 
+        }
+      }
+    });
+
+    if (maxNum > 0 && foundStr) {
+      const match = foundStr.match(/(.*?)(\d+)$/);
+      const prefix = match[1];
+      const digitsLen = match[2].length;
+      return `${prefix}${String(maxNum + 1).padStart(digitsLen, '0')}`;
+    }
+    return `${prefixDefault}001`;
+  };
+
+  const currentSuggestedModels = useMemo(() => {
+    if (!formData.manufacturer) return [];
+    const existing = instruments
+      .filter((i) => i.manufacturer === formData.manufacturer)
+      .map((i) => i.model)
+      .filter(Boolean);
+    const initials = formData.manufacturer.split(' ').map(w => w[0]).join('').toUpperCase();
+    const nextItem = getNextSequence(existing, `${initials}-M-`);
+    const unique = Array.from(new Set(existing));
+    if (!unique.includes(nextItem)) unique.unshift(nextItem);
+    return unique;
+  }, [formData.manufacturer, instruments]);
+
+  const currentSuggestedSerials = useMemo(() => {
+    if (!formData.manufacturer) return [];
+    const existing = instruments
+      .filter((i) => i.manufacturer === formData.manufacturer)
+      .map((i) => i.serial || i.serialNumber)
+      .filter(Boolean);
+    const initials = formData.manufacturer.split(' ').map(w => w[0]).join('').toUpperCase();
+    const nextItem = getNextSequence(existing, `${initials}-SN-`);
+    const unique = Array.from(new Set(existing));
+    if (!unique.includes(nextItem)) unique.unshift(nextItem);
+    return unique;
+  }, [formData.manufacturer, instruments]);
+
+  const existingLocations = useMemo(() => {
+    const locs = instruments.map(i => i.location).filter(Boolean);
+    return Array.from(new Set(locs));
+  }, [instruments]);
+
+    // --- FETCH ENGINEERS ---
+    const fetchEngineers = useCallback(async () => {
+      try {
+        const res = await userApi.getActiveUsers({ role: "engineer" });
+        const list = res?.data?.data?.users || res?.data?.users ||
+res?.data || [];
+        setEngineers(Array.isArray(list) ? list : []);
+      } catch (error) {
+        // Silent fail or log
+        console.error("Failed to fetch engineers:", error);
+      }
+    }, []);
+
+    useEffect(() => {
+      fetchEngineers();
+    }, [fetchEngineers]);
+
+  // --- FETCH DATA Tá»ª API ---
   const fetchInstruments = useCallback(
     async (isManual = false) => {
-      if (!isManual && isLoading) setIsLoading(true);
+      setIsLoading(true);
 
       try {
         const params = {
@@ -74,20 +216,25 @@ export default function InstrumentManagement() {
           name: searchQuery.trim() || undefined,
           status: statusFilter || undefined,
           type: typeFilter || undefined,
+          useCache: false,
         };
 
         const response = await instrumentApi.getInstrumentList(params);
         const list =
-          response.data?.data?.instruments || response.data?.data || [];
+          response?.data?.instruments ||
+          response?.data?.data?.instruments ||
+          response?.instruments ||
+          [];
         setInstruments(Array.isArray(list) ? list : []);
-        setCurrentPage(1); // Reset to first page when data changes
+        setCurrentPage(1);
+        fetchStats();
       } catch (error) {
         console.error("Error fetching instruments:", error);
       } finally {
         setIsLoading(false);
       }
     },
-    [searchQuery, statusFilter, typeFilter],
+    [searchQuery, statusFilter, typeFilter, fetchStats],
   );
 
   useEffect(() => {
@@ -95,29 +242,7 @@ export default function InstrumentManagement() {
       fetchInstruments();
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, typeFilter, fetchInstruments]);
-
-  // --- COMPUTED STATS ---
-  const stats = useMemo(() => {
-    const total = instruments.length;
-    const active = instruments.filter(
-      (i) =>
-        i.status?.toLowerCase() === "active" ||
-        i.status?.toLowerCase() === "operational",
-    ).length;
-    const maintenance = instruments.filter(
-      (i) =>
-        i.status?.toLowerCase() === "maintenance" ||
-        i.status?.toLowerCase() === "calibration",
-    ).length;
-    const faulty = instruments.filter(
-      (i) =>
-        i.status?.toLowerCase() === "faulty" ||
-        i.status?.toLowerCase() === "inactive" ||
-        i.status?.toLowerCase() === "out-of-service",
-    ).length;
-    return { total, active, maintenance, faulty };
-  }, [instruments]);
+  }, [fetchInstruments]);
 
   // --- PAGINATION ---
   const paginatedInstruments = useMemo(() => {
@@ -136,7 +261,7 @@ export default function InstrumentManagement() {
         return "badge-active";
       case "maintenance":
       case "calibration":
-        return "badge-maintenance";
+        return "badge-calibration-due";
       case "faulty":
       case "inactive":
       case "out-of-service":
@@ -178,7 +303,20 @@ export default function InstrumentManagement() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [name]: value };
+      
+      // Reset unit when type changes and current unit is not in suggested list
+      if (name === "instrumentType") {
+        const suggestedUnits = typeUnitMap[value] || [];
+        if (suggestedUnits.length > 0 && !suggestedUnits.includes(newData.unit)) {
+          newData.unit = suggestedUnits[0]; // Auto-select first suitable unit
+        } else if (!value) {
+            newData.unit = "";
+        }
+      }
+      return newData;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -187,41 +325,54 @@ export default function InstrumentManagement() {
 
     try {
       const instrumentData = {
-        name: formData.tagId,
+        name: formData.name,
+        instrumentCode: formData.instrumentCode || undefined,
+        description: formData.description,
         type: formData.instrumentType,
-        serial: formData.serialNumber,
+        serial: formData.serialNumber || undefined,
         model: formData.modelNumber,
         manufacturer: formData.manufacturer,
         location: formData.location,
         status: formData.status || "operational",
         specifications: {
+          ...editTarget?.specifications,
           range:
             formData.rangeMin && formData.rangeMax
               ? `${formData.rangeMin}-${formData.rangeMax} ${formData.unit || ""}`.trim()
               : undefined,
         },
         installationDate: formData.installationDate || undefined,
-        calibrationInterval: formData.calibrationInterval
-          ? parseInt(formData.calibrationInterval)
-          : undefined,
         lastCalibrationDate: formData.lastCalibrationDate || undefined,
+        calibrationInterval: formData.calibrationInterval 
+          ? parseInt(formData.calibrationInterval, 10) 
+          : undefined,
+        operationalParameters: editTarget?.operationalParameters 
+          ? { ...editTarget.operationalParameters }
+          : undefined
       };
 
       if (editTarget) {
         // Update existing instrument
-        await instrumentApi.updateInstrument(editTarget._id, instrumentData);
+        await adminInstrumentApi.update(editTarget._id || editTarget.id, instrumentData);
         showToast("success", "Instrument updated successfully!");
       } else {
         // Create new instrument
-        await instrumentApi.createInstrument(instrumentData);
+        await adminInstrumentApi.create(instrumentData);
         showToast("success", "Instrument created successfully!");
       }
 
       handleCancel();
       fetchInstruments(true);
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message || "Failed to save instrument";
+      let errorMessage = err.response?.data?.message || err.message || "Failed to save instrument";
+      
+      // Extract detailed validation errors if they exist from the backend
+      if (err.response?.data?.error && Array.isArray(err.response.data.error)) {
+        errorMessage = err.response.data.error.map(e => `${e.field}: ${e.message}`).join(" | ");
+      } else if (err.response?.data?.error) {
+        errorMessage = `${errorMessage} - ${err.response.data.error}`;
+      }
+      
       showToast("error", errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -232,7 +383,8 @@ export default function InstrumentManagement() {
     setShowModal(false);
     setEditTarget(null);
     setFormData({
-      tagId: "",
+      name: "",
+      instrumentCode: "",
       instrumentType: "",
       manufacturer: "",
       modelNumber: "",
@@ -245,30 +397,81 @@ export default function InstrumentManagement() {
       rangeMin: "",
       rangeMax: "",
       unit: "",
-      status: "",
+      status: "operational",
     });
   };
 
   const handleEditClick = (instrument) => {
     setEditTarget(instrument);
+
+    // Parse range
+    let rangeMin = "";
+    let rangeMax = "";
+    let unit = "";
+    if (instrument.specifications?.range) {
+        const rangeText = instrument.specifications.range;
+        // Match patterns like "0-100", "-50 to 500", "0.5 - 1.5", etc.
+        const match = rangeText.match(/^([-\d.]+)\s*(?:-|to)\s*([-\d.]+)\s*(.*)$/i);
+        if (match) {
+          rangeMin = match[1];
+          rangeMax = match[2];
+          unit = match[3] || "";
+        } else {
+          // Fallback simple parsing
+          const parts = rangeText.split(" ");
+          if (parts.length >= 1) {
+            const minMax = parts[0].split("-");
+            if (minMax.length === 2 && minMax[0] !== "") {
+              rangeMin = minMax[0];
+              rangeMax = minMax[1];
+            } else if (minMax.length === 3 && parts[0].startsWith("-")) {
+              // handles "-50-500" -> ["", "50", "500"]
+              rangeMin = "-" + minMax[1];
+              rangeMax = minMax[2];
+            }
+          }
+          if (parts.length >= 2 && !unit) {
+            unit = parts.slice(1).join(" ");
+          }
+        }
+    }
+
+    const lastCalib = instrument.operationalParameters?.calibrationDate || instrument.lastCalibrationDate;
+
+    // Calculate interval if possible (in months)
+    let calcInterval = instrument.calibrationInterval || "";
+    if (!calcInterval && instrument.operationalParameters?.calibrationDate && instrument.operationalParameters?.nextCalibrationDate) {
+      const d1 = new Date(instrument.operationalParameters.calibrationDate);
+      const d2 = new Date(instrument.operationalParameters.nextCalibrationDate);
+      let months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+      
+      // Fallback for previous bug where interval was saved as days instead of months
+      if (months === 0 && d2.getTime() > d1.getTime()) {
+        const diffDays = Math.round((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24));
+        if (diffDays > 0 && diffDays <= 120) months = diffDays;
+      }
+      calcInterval = months ? String(months) : "";
+    }
+
     setFormData({
-      tagId: instrument.name || instrument.tagId || "",
+      name: instrument.name || "",
+      instrumentCode: instrument.instrumentCode || "",
+      description: instrument.description || "",
       instrumentType: instrument.type || "",
       manufacturer: instrument.manufacturer || "",
-      modelNumber: instrument.model || instrument.modelNumber || "",
+      modelNumber: instrument.model || "",
       location: instrument.location || "",
       installationDate: instrument.installationDate
         ? instrument.installationDate.split("T")[0]
         : "",
-      lastCalibrationDate: instrument.lastCalibrationDate
-        ? instrument.lastCalibrationDate.split("T")[0]
+      lastCalibrationDate: lastCalib
+        ? lastCalib.split("T")[0]
         : "",
-      calibrationInterval: instrument.calibrationInterval || "",
-      description: instrument.description || "",
+      calibrationInterval: calcInterval,
       serialNumber: instrument.serial || instrument.serialNumber || "",
-      rangeMin: "",
-      rangeMax: "",
-      unit: "",
+      rangeMin: rangeMin,
+      rangeMax: rangeMax,
+      unit: unit,
       status: instrument.status || "operational",
     });
     setShowModal(true);
@@ -284,7 +487,7 @@ export default function InstrumentManagement() {
     setIsSubmitting(true);
 
     try {
-      await instrumentApi.deleteInstrument(deleteTarget._id);
+      await adminInstrumentApi.delete(deleteTarget._id || deleteTarget.id);
       showToast("success", "Instrument deleted successfully!");
       setShowDeleteModal(false);
       setDeleteTarget(null);
@@ -295,6 +498,71 @@ export default function InstrumentManagement() {
       showToast("error", errorMessage);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAssignEngineer = (instrument) => {
+    setAssignTarget(instrument);
+    if (instrument.assignedTo) {
+      setSelectedEngineer(instrument.assignedTo._id || instrument.assignedTo);
+    }
+    setShowAssignModal(true);
+  };
+
+  const onAssignSubmit = async () => {
+    if (!selectedEngineer) {
+      showToast("error", "Please select an engineer");
+      return;
+    }
+    const targetId = assignTarget._id || assignTarget.id;
+    try {
+      await adminInstrumentApi.assignEngineer(
+        targetId,
+        selectedEngineer,
+      );
+      showToast("success", `Engineer assigned to ${assignTarget.name}`);
+      setShowAssignModal(false);
+      fetchInstruments(true);
+    } catch (error) {
+      showToast(
+        "error",
+        error.response?.data?.message || "Failed to assign engineer",
+      );
+    }
+  };
+
+  const handleScheduleMaintenance = (instrument) => {
+    setMaintenanceTarget(instrument);
+    setMaintenanceForm({
+      type: "preventive",
+      date: "",
+      notes: "",
+    });
+    setShowMaintenanceModal(true);
+  };
+
+  const onMaintenanceSubmit = async () => {
+    if (!maintenanceForm.date || !maintenanceForm.type) {
+      showToast("error", "Please fill in required fields");
+      return;
+    }
+    const targetId = maintenanceTarget._id || maintenanceTarget.id;
+    try {
+      await instrumentApi.scheduleMaintenance(
+        targetId,
+        maintenanceForm,
+      );
+      showToast(
+        "success",
+        `Maintenance scheduled for ${maintenanceTarget.name}`,
+      );
+      setShowMaintenanceModal(false);
+      fetchInstruments(true);
+    } catch (error) {
+      showToast(
+        "error",
+        error.response?.data?.message || "Failed to schedule maintenance",
+      );
     }
   };
 
@@ -325,9 +593,11 @@ export default function InstrumentManagement() {
             <FaSync className={isLoading ? "spin" : ""} />
             <span>Refresh</span>
           </button>
-          <button className="btn-create" onClick={() => setShowModal(true)}>
-            <FaPlus /> Add Instrument
-          </button>
+          {role === "admin" && (
+            <button className="btn-create" onClick={() => setShowModal(true)}>
+              <FaPlus /> Add Instrument
+            </button>
+          )}
         </div>
       </div>
 
@@ -431,35 +701,45 @@ export default function InstrumentManagement() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="">All Statuses</option>
-                <option value="operational">Active</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="faulty">Faulty/Inactive</option>
+                  <option value="operational">Operational</option>
+                  <option value="calibration">Calibration</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="faulty">Faulty</option>
+                  <option value="out-of-service">Out of Service</option>
+                </select>
+              </div>
+
+              <select
+                className="filter-select"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="pressure">Pressure (Áp suất)</option>
+                <option value="temperature">Temperature (Nhiệt độ)</option>
+                <option value="flow">Flow (Lưu lượng)</option>
+                <option value="level">Level (Mức)</option>
+                <option value="analytical">Analytical (Phân tích)</option>
+                <option value="safety">Safety (An toàn)</option>
+                <option value="control">Control (Điều khiển)</option>
+                <option value="monitoring">Monitoring (Giám sát)</option>
+                <option value="other">Other (Khác)</option>
               </select>
+
+              {(searchQuery || statusFilter || typeFilter) && (
+                <button
+                  className="btn-clear-filters"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("");
+                    setTypeFilter("");
+                  }}
+                  title="Clear all filters"
+                >
+                  <FaTimes />
+                </button>
+              )}
             </div>
-
-            <select
-              className="filter-select"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              <option value="">All Types</option>
-              <option value="pressure">Pressure</option>
-              <option value="temperature">Temperature</option>
-              <option value="flow">Flow</option>
-              <option value="level">Level</option>
-              <option value="analytical">Analytical</option>
-              <option value="safety">Safety</option>
-              <option value="control">Control</option>
-              <option value="monitoring">Monitoring</option>
-              <option value="other">Other</option>
-            </select>
-
-            {hasActiveFilters && (
-              <button className="btn-clear-filters" onClick={clearFilters}>
-                <FaTimes /> Clear Filters
-              </button>
-            )}
-          </div>
         </div>
 
         {hasActiveFilters && (
@@ -532,7 +812,7 @@ export default function InstrumentManagement() {
                           >
                             Clear Filters
                           </button>
-                        ) : (
+                        ) : role === "admin" && (
                           <button
                             className="btn-create"
                             onClick={() => setShowModal(true)}
@@ -620,20 +900,49 @@ export default function InstrumentManagement() {
                       <td>
                         <div className="action-buttons">
                           <button
-                            className="btn-icon btn-view"
-                            title="View Details"
-                            onClick={() =>
-                              navigate(
-                                `/app/instrument/${instrument.id || instrument._id || instrument.tagId}`,
-                              )
-                            }
+                            className="btn-icon"
+                            title="Assign Engineer"
+                            onClick={() => handleAssignEngineer(instrument)}
+                            style={{
+                              display:
+                                role === "admin" || role === "supervisor"
+                                  ? "flex"
+                                  : "none",
+                              color: "#2196F3",
+                            }}
                           >
-                            <FaEye />
+                            <FaUserCog />
+                          </button>
+                          <button
+                            className="btn-icon"
+                            title="Schedule Maintenance"
+                            onClick={() => handleScheduleMaintenance(instrument)}
+                            style={{
+                              display:
+                                ["admin", "supervisor", "engineer"].includes(role)
+                                  ? "flex"
+                                  : "none",
+                              color: "#FF9800",
+                            }}
+                          >
+                            <FaCalendarPlus />
+                          </button>
+                          <button
+                            className="btn-icon btn-view"
+                              title="View Details"
+                              onClick={() =>
+                                navigate(
+                                  `/app/instrument/${instrument._id || instrument.id || instrument.tagId}`
+                                )
+                              }
+                            >
+                              <FaEye />
                           </button>
                           <button
                             className="btn-icon btn-edit"
                             title="Edit"
                             onClick={() => handleEditClick(instrument)}
+                            style={{ display: role === "admin" ? "flex" : "none" }}
                           >
                             <FaEdit />
                           </button>
@@ -641,6 +950,7 @@ export default function InstrumentManagement() {
                             className="btn-icon btn-delete"
                             title="Delete"
                             onClick={() => handleDeleteClick(instrument)}
+                            style={{ display: role === "admin" ? "flex" : "none" }}
                           >
                             <FaTrash />
                           </button>
@@ -734,16 +1044,30 @@ export default function InstrumentManagement() {
 
                     <div className="form-group">
                       <label>
-                        Tag ID <span className="required">*</span>
+                        Instrument Name <span className="required">*</span>
                       </label>
                       <input
                         type="text"
-                        name="tagId"
+                        name="name"
                         className="form-input"
-                        placeholder="e.g., PT-1001"
-                        value={formData.tagId}
+                        placeholder="e.g., Main Pressure Transmitter"
+                        value={formData.name}
                         onChange={handleInputChange}
                         required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>
+                        Instrument Code
+                      </label>
+                      <input
+                        type="text"
+                        name="instrumentCode"
+                        className="form-input"
+                        placeholder="Leave blank to auto-generate (e.g., INST_0001)"
+                        value={formData.instrumentCode}
+                        onChange={handleInputChange}
                       />
                     </div>
 
@@ -758,21 +1082,21 @@ export default function InstrumentManagement() {
                         onChange={handleInputChange}
                         required
                       >
-                        <option value="">Select Type</option>
-                        <option value="pressure">Pressure</option>
-                        <option value="temperature">Temperature</option>
-                        <option value="flow">Flow</option>
-                        <option value="level">Level</option>
-                        <option value="analytical">Analytical</option>
-                        <option value="safety">Safety</option>
-                        <option value="control">Control</option>
-                        <option value="monitoring">Monitoring</option>
-                        <option value="other">Other</option>
+                        <option value="">-- Select Type --</option>
+                        <option value="pressure">Pressure (Áp suất)</option>
+                        <option value="temperature">Temperature (Nhiệt độ)</option>
+                        <option value="flow">Flow (Lưu lượng)</option>
+                        <option value="level">Level (Mức)</option>
+                        <option value="analytical">Analytical (Phân tích)</option>
+                        <option value="safety">Safety (An toàn)</option>
+                        <option value="control">Control (Điều khiển)</option>
+                        <option value="monitoring">Monitoring (Giám sát)</option>
+                        <option value="other">Other (Khác)</option>
                       </select>
                     </div>
 
                     <div className="form-group">
-                      <label>Manufacturer</label>
+                      <label>Manufacturer <span className="required">*</span></label>
                       <input
                         type="text"
                         name="manufacturer"
@@ -780,11 +1104,15 @@ export default function InstrumentManagement() {
                         placeholder="e.g., Emerson, Siemens"
                         value={formData.manufacturer}
                         onChange={handleInputChange}
+                        list="manufacturer-suggestions"
                       />
+                      <datalist id="manufacturer-suggestions">
+                        {currentSuggestedManufacturers.map(m => <option key={m} value={m} />)}
+                      </datalist>
                     </div>
 
                     <div className="form-group">
-                      <label>Model Number</label>
+                      <label>Model Number <span className="required">*</span></label>
                       <input
                         type="text"
                         name="modelNumber"
@@ -792,11 +1120,15 @@ export default function InstrumentManagement() {
                         placeholder="e.g., 3051S"
                         value={formData.modelNumber}
                         onChange={handleInputChange}
+                        list="model-suggestions"
                       />
+                      <datalist id="model-suggestions">
+                        {currentSuggestedModels.map(m => <option key={m} value={m} />)}
+                      </datalist>
                     </div>
 
                     <div className="form-group">
-                      <label>Serial Number</label>
+                      <label>Serial Number <span className="required">*</span></label>
                       <input
                         type="text"
                         name="serialNumber"
@@ -804,7 +1136,11 @@ export default function InstrumentManagement() {
                         placeholder="Enter serial number"
                         value={formData.serialNumber}
                         onChange={handleInputChange}
+                        list="serial-suggestions"
                       />
+                      <datalist id="serial-suggestions">
+                        {currentSuggestedSerials.map(s => <option key={s} value={s} />)}
+                      </datalist>
                     </div>
 
                     <div className="form-group">
@@ -819,7 +1155,11 @@ export default function InstrumentManagement() {
                         value={formData.location}
                         onChange={handleInputChange}
                         required
+                        list="location-suggestions"
                       />
+                      <datalist id="location-suggestions">
+                        {existingLocations.map((l, idx) => <option key={idx} value={l} />)}
+                      </datalist>
                     </div>
 
                     <div className="form-group">
@@ -830,9 +1170,11 @@ export default function InstrumentManagement() {
                         value={formData.status}
                         onChange={handleInputChange}
                       >
-                        <option value="operational">Active</option>
-                        <option value="maintenance">Maintenance</option>
-                        <option value="faulty">Faulty/Inactive</option>
+                        <option value="operational">Operational (Hoạt động tốt)</option>
+                        <option value="calibration">Calibration (Đang hiệu chuẩn)</option>
+                        <option value="maintenance">Maintenance (Đang bảo trì)</option>
+                        <option value="faulty">Faulty (Bị lỗi/Hỏng)</option>
+                        <option value="out-of-service">Out of Service (Ngừng sử dụng)</option>
                       </select>
                     </div>
                   </div>
@@ -907,10 +1249,14 @@ export default function InstrumentManagement() {
                           type="text"
                           name="unit"
                           className="form-input"
-                          placeholder="PSI"
+                          placeholder={currentSuggestedUnits.length > 0 ? currentSuggestedUnits[0] : "Unit"}
                           value={formData.unit}
                           onChange={handleInputChange}
+                          list="unit-suggestions"
                         />
+                        <datalist id="unit-suggestions">
+                          {currentSuggestedUnits.map(u => <option key={u} value={u} />)}
+                        </datalist>
                       </div>
                     </div>
 
@@ -956,6 +1302,162 @@ export default function InstrumentManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+
+      {/* Assign Engineer Modal */}
+      {showAssignModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowAssignModal(false)}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Assign Engineer</h2>
+              <button
+                className="close-btn"
+                onClick={() => setShowAssignModal(false)}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Instrument: <strong>{assignTarget?.name}</strong>
+              </p>
+              <div className="form-group">
+                <label>Select Engineer</label>
+                <select
+                  className="form-input"
+                  value={selectedEngineer}
+                  onChange={(e) => setSelectedEngineer(e.target.value)}
+                >
+                  <option value="">-- Choose Engineer --</option>
+                  {engineers.map((eng) => (
+                    <option key={eng._id || eng.id} value={eng._id || eng.id}>
+                      {eng.username} ({eng.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowAssignModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-submit"
+                disabled={!selectedEngineer}
+                onClick={onAssignSubmit}
+              >
+                Assign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Maintenance Modal */}
+      {showMaintenanceModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowMaintenanceModal(false)}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Schedule Maintenance</h2>
+              <button
+                className="close-btn"
+                onClick={() => setShowMaintenanceModal(false)}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Instrument: <strong>{maintenanceTarget?.name}</strong>
+              </p>
+              <div className="form-group">
+                <label>Maintenance Type</label>
+                <select
+                  className="form-input"
+                  value={maintenanceForm.type}
+                  onChange={(e) =>
+                    setMaintenanceForm({
+                      ...maintenanceForm,
+                      type: e.target.value,
+                    })
+                  }
+                >
+                  <option value="preventive">Preventive</option>
+                  <option value="corrective">Corrective</option>
+                  <option value="calibration">Calibration</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Date</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={maintenanceForm.date}
+                  onChange={(e) =>
+                    setMaintenanceForm({
+                      ...maintenanceForm,
+                      date: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="form-group">
+                <label>Engineer (Optional)</label>
+                <select
+                  className="form-input"
+                  value={maintenanceForm.engineerId}
+                  onChange={(e) =>
+                    setMaintenanceForm({
+                      ...maintenanceForm,
+                      engineerId: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">-- Auto Assign / Pending --</option>
+                  {engineers.map((eng) => (
+                    <option key={eng._id || eng.id} value={eng._id || eng.id}>
+                      {eng.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  className="form-input"
+                  value={maintenanceForm.description}
+                  onChange={(e) =>
+                    setMaintenanceForm({
+                      ...maintenanceForm,
+                      description: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowMaintenanceModal(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn-submit" onClick={onMaintenanceSubmit}>
+                Schedule
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { showToast } from "../../utils/toastHandler";
 import userApi from "../../services/userApi";
+import roleApi from "../../services/roleApi";
 import useAuthStore from "../../store/useAuthStore";
 import UserFilters from "./UserFilters";
 import UserTable from "./UserTable";
@@ -10,6 +11,7 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [roles, setRoles] = useState([]);
 
   const currentUser = useAuthStore((state) => state.user);
   const isAdmin = currentUser?.role?.toLowerCase() === "admin";
@@ -38,6 +40,23 @@ export default function UserManagement() {
   });
 
   // --- FETCH USERS FROM BACKEND ---
+  const fetchRoles = useCallback(async () => {
+    try {
+      const response = await roleApi.getRoles();
+      const rolesList = response.data?.data || response.data || [];
+      setRoles(Array.isArray(rolesList) ? rolesList : []);
+    } catch (err) {
+      console.error("Error fetching roles:", err);
+      setRoles([]);
+    }
+  }, []);
+
+  // Fetch roles on component mount
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
+
+  // --- FETCH USERS FROM BACKEND ---
   const fetchUsers = useCallback(
     async (page = 1) => {
       setIsLoading(true);
@@ -45,27 +64,38 @@ export default function UserManagement() {
         const baseParams = {
           page,
           limit: pagination.limit,
-          search: searchQuery.trim() || undefined,
-          role: roleFilter !== "all" ? roleFilter : undefined,
         };
 
         let response;
 
         if (statusFilter === "deleted") {
+          // /users/deleted only accepts page and limit
           response = await userApi.getUsersDeleted(baseParams);
         } else if (statusFilter === "all") {
+          // /users/all accepts page, limit, and optional status/includeDeleted
           response = await userApi.getUsersAll(baseParams);
         } else {
+          // /users accepts page, limit, and search
           response = await userApi.getActiveUsers({
             ...baseParams,
-            status: statusFilter,
+            search: searchQuery.trim() || undefined,
           });
         }
 
         const resData = response.data?.data || response.data || response;
 
         // Xử lý dữ liệu trả về theo cấu trúc Backend mới
-        setUsers(resData.users || (Array.isArray(resData) ? resData : []));
+        let usersList =
+          resData.users || (Array.isArray(resData) ? resData : []);
+
+        // Apply role filter on client-side
+        if (roleFilter !== "all") {
+          usersList = usersList.filter(
+            (user) => user.role?.toLowerCase() === roleFilter.toLowerCase(),
+          );
+        }
+
+        setUsers(usersList);
 
         if (resData.pagination) {
           setPagination(resData.pagination);
@@ -114,12 +144,13 @@ export default function UserManagement() {
       } else {
         // Create form fields follow POST /users body
         payload = {
-          email: data.email,
-          name: data.name,
-          phone: data.phone,
-          department: data.department,
-          role: data.role,
+          email: data.email?.trim().toLowerCase(),
           password: data.password,
+          confirmPassword: data.confirmPassword,
+          name: data.name?.trim(),
+          phone: data.phone?.trim(),
+          department: data.department?.trim(),
+          role: (data.role || "").toLowerCase(),
         };
         await userApi.createUser(payload);
         showToast("success", `Created new user "${data.name}" successfully!`);
@@ -162,6 +193,7 @@ export default function UserManagement() {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
       phone: "",
       department: "",
       role: "",
@@ -249,6 +281,7 @@ export default function UserManagement() {
         totalCount={pagination.totalItems}
         onReload={() => fetchUsers(pagination.currentPage)}
         onCreate={handleCreate}
+        roles={roles}
       />
 
       <UserTable

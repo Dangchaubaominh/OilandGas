@@ -110,3 +110,116 @@
 .btn-edit-permissions svg {
   font-size: 14px;
 }
+
+.btn-role-delete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-role-delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fecaca;
+}
+
+.btn-role-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.role-form-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 6px;
+  display: block;
+}
+
+.role-form-help {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.role-permissions-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.role-permissions-action {
+  border: 1px solid var(--border-muted);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.role-permissions-action:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.role-permissions-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.role-permissions-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.role-permissions-group {
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--bg-card);
+}
+
+.role-permissions-group-title {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.role-permissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.role-permission-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.role-permission-option input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent-primary);
+}

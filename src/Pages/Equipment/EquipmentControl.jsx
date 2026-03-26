@@ -20,8 +20,8 @@ import {
   FaCog,
   FaCalendarAlt,
 } from "react-icons/fa";
-import equipmentApi from "../../services/equipmentApi";
-import { showToast } from "../../utils/toastHandler";
+import { toast } from "react-toastify";
+import adminEquipmentApi from "../../services/adminEquipmentApi";
 
 export default function EquipmentControl() {
   const navigate = useNavigate();
@@ -43,8 +43,8 @@ export default function EquipmentControl() {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [editTarget, setEditTarget] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({
     equipmentName: "",
     equipmentType: "",
@@ -58,13 +58,26 @@ export default function EquipmentControl() {
     needsCalibration: false,
   });
 
+  const [stats, setStats] = useState({ total: 0, active: 0, maintenance: 0, inactive: 0 });
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await adminEquipmentApi.getStats();
+      if (response?.data) {
+        setStats(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  }, []);
+
   // --- FETCH DATA FROM API ---
   const fetchEquipmentData = useCallback(
     async (isManual = false) => {
-      if (!isManual && isLoading) setIsLoading(true);
+      setIsLoading(true);
 
       try {
-        const response = await equipmentApi.getEquipmentList({
+        const response = await adminEquipmentApi.getAll({
           page: 1,
           limit: 100,
           name: searchQuery.trim() || undefined,
@@ -72,16 +85,21 @@ export default function EquipmentControl() {
           type: typeFilter || undefined,
         });
 
-        const equipmentList = response.data?.data?.equipment || [];
+        const equipmentList =
+          response?.data?.equipment ||
+          response?.data?.data?.equipment ||
+          response?.equipment ||
+          [];
         setEquipment(Array.isArray(equipmentList) ? equipmentList : []);
         setCurrentPage(1);
+        fetchStats(); // Update stats whenever we fetch list
       } catch (error) {
         console.error("Error fetching equipment:", error);
       } finally {
         setIsLoading(false);
       }
     },
-    [searchQuery, statusFilter, typeFilter],
+    [searchQuery, statusFilter, typeFilter, fetchStats],
   );
 
   // Debounce Search
@@ -90,28 +108,7 @@ export default function EquipmentControl() {
       fetchEquipmentData();
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, typeFilter, fetchEquipmentData]);
-
-  // --- COMPUTED STATS ---
-  const stats = useMemo(() => {
-    const total = equipment.length;
-    const active = equipment.filter(
-      (i) =>
-        i.status?.toLowerCase() === "active" ||
-        i.status?.toLowerCase() === "operational",
-    ).length;
-    const maintenance = equipment.filter(
-      (i) => i.status?.toLowerCase() === "maintenance",
-    ).length;
-    const faulty = equipment.filter(
-      (i) =>
-        i.status?.toLowerCase() === "faulty" ||
-        i.status?.toLowerCase() === "inactive" ||
-        i.status?.toLowerCase() === "offline" ||
-        i.status?.toLowerCase() === "out-of-service",
-    ).length;
-    return { total, active, maintenance, faulty };
-  }, [equipment]);
+  }, [fetchEquipmentData]);
 
   // --- PAGINATION ---
   const paginatedEquipment = useMemo(() => {
@@ -124,11 +121,9 @@ export default function EquipmentControl() {
   // --- HELPERS ---
   const getTypeIcon = (type) => {
     const lowerType = type?.toLowerCase() || "";
-    if (lowerType === "drilling") return <FaCog />;
-    if (lowerType === "pumping") return <FaOilCan />;
-    if (lowerType === "safety") return <FaExclamationTriangle />;
-    if (lowerType === "measurement") return <FaMicrochip />;
-    if (lowerType === "transportation") return <FaCogs />;
+    if (lowerType.includes("pump")) return <FaOilCan />;
+    if (lowerType.includes("valve")) return <FaCog />;
+    if (lowerType.includes("sensor")) return <FaMicrochip />;
     return <FaCogs />;
   };
 
@@ -139,11 +134,12 @@ export default function EquipmentControl() {
       case "active":
         return "badge-active";
       case "maintenance":
-        return "badge-maintenance";
-      case "faulty":
+      case "repair":
+      case "inspection":
+        return "badge-calibration-due";
+      case "out-of-service":
       case "inactive":
       case "offline":
-      case "out-of-service":
         return "badge-faulty";
       default:
         return "badge-default";
@@ -157,11 +153,12 @@ export default function EquipmentControl() {
       case "active":
         return <FaCheckCircle />;
       case "maintenance":
+      case "repair":
+      case "inspection":
         return <FaExclamationTriangle />;
-      case "faulty":
+      case "out-of-service":
       case "inactive":
       case "offline":
-      case "out-of-service":
         return <FaTimesCircle />;
       default:
         return null;
@@ -179,47 +176,38 @@ export default function EquipmentControl() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
     try {
-      const equipmentData = {
-        name: formData.equipmentName,
-        type: formData.equipmentType,
-        serial: formData.serialNumber,
-        model: formData.model,
-        manufacturer: formData.manufacturer,
-        location: formData.location,
-        status: formData.currentStatus || "operational",
-        technicalSpecs: formData.technicalSpec
-          ? { description: formData.technicalSpec }
-          : {},
+      const payload = {
+        name: formData.equipmentName?.trim(),
+        type: formData.equipmentType?.toLowerCase(),
+        serial: formData.serialNumber?.trim(),
+        model: formData.model?.trim(),
+        manufacturer: formData.manufacturer?.trim(),
+        location: formData.location?.trim(),
+        installationDate: formData.installDate || undefined,
         purchaseDate: formData.installDate || undefined,
+        status: formData.currentStatus?.toLowerCase() || undefined,
       };
 
-      if (editTarget) {
-        // Update existing equipment
-        await equipmentApi.updateEquipment(editTarget._id, equipmentData);
-        showToast("success", "Equipment updated successfully!");
+      if (isEditing && editId) {
+        await adminEquipmentApi.update(editId, payload);
+        toast.success("Equipment updated successfully");
       } else {
-        // Create new equipment
-        await equipmentApi.createEquipment(equipmentData);
-        showToast("success", "Equipment created successfully!");
+        await adminEquipmentApi.create(payload);
+        toast.success("Equipment created successfully");
       }
-
       handleCancel();
       fetchEquipmentData(true);
-    } catch (err) {
-      const errorMessage =
-        err.response?.data?.message || "Failed to save equipment";
-      showToast("error", errorMessage);
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      console.error(`Error ${isEditing ? "updating" : "creating"} equipment:`, error);
+      toast.error(error?.response?.data?.message || `Failed to ${isEditing ? "update" : "create"} equipment`);
     }
   };
 
   const handleCancel = () => {
     setShowModal(false);
-    setEditTarget(null);
+    setIsEditing(false);
+    setEditId(null);
     setFormData({
       equipmentName: "",
       equipmentType: "",
@@ -235,7 +223,9 @@ export default function EquipmentControl() {
   };
 
   const handleEditClick = (item) => {
-    setEditTarget(item);
+    setIsEditing(true);
+    setEditId(item.id || item._id);
+    
     setFormData({
       equipmentName: item.name || "",
       equipmentType: item.type || "",
@@ -243,11 +233,12 @@ export default function EquipmentControl() {
       model: item.model || "",
       manufacturer: item.manufacturer || "",
       location: item.location || "",
-      installDate: item.purchaseDate ? item.purchaseDate.split("T")[0] : "",
-      currentStatus: item.status || "operational",
-      technicalSpec: item.technicalSpecs?.description || "",
+      installDate: item.installationDate ? item.installationDate.substring(0, 10) : item.purchaseDate ? item.purchaseDate.substring(0, 10) : item.createdAt ? item.createdAt.substring(0, 10) : "",       
+      currentStatus: item.status || "",
+      technicalSpec: item.technicalSpecs?.specifications?.map(s => `${s.parameter}: ${s.value} ${s.unit}`).join('\n') || "",
       needsCalibration: false,
     });
+    
     setShowModal(true);
   };
 
@@ -258,20 +249,15 @@ export default function EquipmentControl() {
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
-    setIsSubmitting(true);
-
     try {
-      await equipmentApi.deleteEquipment(deleteTarget._id);
-      showToast("success", "Equipment deleted successfully!");
+      await adminEquipmentApi.delete(deleteTarget._id || deleteTarget.id);
       setShowDeleteModal(false);
       setDeleteTarget(null);
+      toast.success("Equipment deleted successfully");
       fetchEquipmentData(true);
-    } catch (err) {
-      const errorMessage =
-        err.response?.data?.message || "Failed to delete equipment";
-      showToast("error", errorMessage);
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      console.error("Error deleting equipment:", error);
+      toast.error(error?.response?.data?.message || "Failed to delete equipment");
     }
   };
 
@@ -343,7 +329,7 @@ export default function EquipmentControl() {
         <div className="stat-card">
           <div className="stat-content">
             <div className="stat-info">
-              <p className="stat-label">Maintenance</p>
+              <p className="stat-label">Under Maintenance</p>
               <p className="stat-value stat-value-orange">
                 {stats.maintenance}
               </p>
@@ -363,8 +349,8 @@ export default function EquipmentControl() {
         <div className="stat-card">
           <div className="stat-content">
             <div className="stat-info">
-              <p className="stat-label">Faulty / Inactive</p>
-              <p className="stat-value stat-value-red">{stats.faulty}</p>
+              <p className="stat-label">Inactive / Offline</p>
+              <p className="stat-value stat-value-red">{stats.inactive}</p>
             </div>
             <div className="stat-icon stat-icon-red">
               <FaTimesCircle />
@@ -373,7 +359,7 @@ export default function EquipmentControl() {
           <div
             className="stat-bar stat-bar-red"
             style={{
-              width: `${stats.total ? (stats.faulty / stats.total) * 100 : 0}%`,
+              width: `${stats.total ? (stats.inactive / stats.total) * 100 : 0}%`,
             }}
           />
         </div>
@@ -408,9 +394,11 @@ export default function EquipmentControl() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="">All Statuses</option>
-                <option value="operational">Active</option>
+                <option value="operational">Operational / Active</option>
                 <option value="maintenance">Maintenance</option>
-                <option value="faulty">Faulty/Inactive</option>
+                <option value="repair">Repair</option>
+                <option value="inspection">Inspection</option>
+                <option value="out-of-service">Out of Service / Inactive</option>
               </select>
             </div>
 
@@ -444,21 +432,10 @@ export default function EquipmentControl() {
               <span className="filter-tag">Search: "{searchQuery}"</span>
             )}
             {statusFilter && (
-              <span className="filter-tag">
-                Status:{" "}
-                {statusFilter === "operational"
-                  ? "Active"
-                  : statusFilter === "maintenance"
-                    ? "Maintenance"
-                    : statusFilter === "faulty"
-                      ? "Faulty/Inactive"
-                      : statusFilter}
-              </span>
+              <span className="filter-tag">Status: {statusFilter}</span>
             )}
             {typeFilter && (
-              <span className="filter-tag">
-                Type: {typeFilter.charAt(0).toUpperCase() + typeFilter.slice(1)}
-              </span>
+              <span className="filter-tag">Type: {typeFilter}</span>
             )}
           </div>
         )}
@@ -523,7 +500,7 @@ export default function EquipmentControl() {
                     <tr key={item.id || item._id} className="equipment-row">
                       <td>
                         <span className="tag-id">
-                          {String(item.id || item._id || "").substring(0, 8)}
+                          {(item.id || item._id)?.substring(0, 8)}
                         </span>
                       </td>
                       <td>
@@ -671,11 +648,9 @@ export default function EquipmentControl() {
           >
             <div className="modal-header">
               <div>
-                <h2>{editTarget ? "Edit Equipment" : "Add New Equipment"}</h2>
+                <h2>{isEditing ? "Edit Equipment" : "Add New Equipment"}</h2>
                 <p className="modal-subtitle">
-                  {editTarget
-                    ? "Update equipment information"
-                    : "Add a new equipment to the tracking system"}
+                  {isEditing ? "Update existing equipment details" : "Add a new equipment to the tracking system"}
                 </p>
               </div>
               <button className="modal-close" onClick={handleCancel}>
@@ -742,7 +717,9 @@ export default function EquipmentControl() {
                     </div>
 
                     <div className="form-group">
-                      <label>Model</label>
+                      <label>
+                        Model <span className="required">*</span>
+                      </label>
                       <input
                         type="text"
                         name="model"
@@ -750,6 +727,7 @@ export default function EquipmentControl() {
                         placeholder="Enter model"
                         value={formData.model}
                         onChange={handleInputChange}
+                        required
                       />
                     </div>
 
@@ -820,9 +798,11 @@ export default function EquipmentControl() {
                         required
                       >
                         <option value="">Select status</option>
-                        <option value="operational">Active</option>
+                        <option value="operational">Operational</option>
                         <option value="maintenance">Maintenance</option>
-                        <option value="faulty">Faulty/Inactive</option>
+                        <option value="out-of-service">Out of Service</option>
+                        <option value="repair">Repair</option>
+                        <option value="inspection">Inspection</option>
                       </select>
                     </div>
 
@@ -861,25 +841,11 @@ export default function EquipmentControl() {
                   type="button"
                   className="btn-cancel"
                   onClick={handleCancel}
-                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <FaSync className="spin" /> Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FaPlus />{" "}
-                      {editTarget ? "Update Equipment" : "Save Equipment"}
-                    </>
-                  )}
+                <button type="submit" className="btn-submit">
+                  {isEditing ? < FaEdit /> : <FaPlus />} {isEditing ? "Update Equipment" : "Save Equipment"}
                 </button>
               </div>
             </form>
@@ -910,24 +876,14 @@ export default function EquipmentControl() {
               <button
                 className="btn-cancel"
                 onClick={() => setShowDeleteModal(false)}
-                disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 className="btn-delete-confirm"
                 onClick={handleDeleteConfirm}
-                disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <>
-                    <FaSync className="spin" /> Deleting...
-                  </>
-                ) : (
-                  <>
-                    <FaTrash /> Delete
-                  </>
-                )}
+                <FaTrash /> Delete
               </button>
             </div>
           </div>

@@ -12,7 +12,6 @@ import {
   FaLock,
   FaBuilding,
   FaCalendarAlt,
-  FaCamera, // Thêm icon camera nếu bạn muốn
 } from "react-icons/fa";
 import { showToast } from "../../utils/toastHandler";
 
@@ -162,7 +161,7 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0d1117]">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--bg-body)]">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -170,19 +169,21 @@ export default function Profile() {
 
   if (!profileData) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0d1117] text-white">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--bg-body)] text-[var(--text-primary)]">
         Failed to load profile data.
       </div>
     );
   }
 
   return (
-    <div className="p-8 bg-[#0d1117] min-h-screen text-gray-200">
+    <div className="p-8 bg-[var(--bg-body)] min-h-screen text-[var(--text-primary)]">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 flex justify-between items-end">
           <div>
-            <h1 className="text-2xl font-bold text-white">User Profile</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+              User Profile
+            </h1>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
               Manage your account settings and preferences.
             </p>
           </div>
@@ -190,16 +191,16 @@ export default function Profile() {
           <button
             type="button"
             onClick={() => setIsPasswordModalOpen(true)}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[var(--bg-surface)] hover:bg-[var(--hover-subtle)] border border-[var(--border-primary)] text-[var(--text-primary)] text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
-            <FaLock className="text-gray-400" /> Change Password
+            <FaLock className="text-[var(--text-secondary)]" /> Change Password
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Left column: Profile info card */}
           <div className="col-span-1 space-y-6">
-            <div className="bg-[#161a23] border border-gray-800 rounded-xl p-6 flex flex-col items-center shadow-sm relative">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl p-6 flex flex-col items-center shadow-sm relative">
               <div className="absolute top-4 right-4">
                 <span
                   className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
@@ -261,17 +262,19 @@ export default function Profile() {
               </div>
               {/* Kết thúc khối Avatar */}
 
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                 {profileData.name}
               </h2>
-              <p className="text-sm text-gray-400 mb-2">{profileData.email}</p>
+              <p className="text-sm text-[var(--text-secondary)] mb-2">
+                {profileData.email}
+              </p>
               <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-medium uppercase tracking-wider rounded-full border border-blue-500/20">
                 {profileData.role}
               </span>
 
-              <div className="w-full mt-6 pt-6 border-t border-gray-800 space-y-3">
-                <div className="flex items-center text-sm text-gray-400">
-                  <FaCalendarAlt className="mr-3 text-gray-500" />
+              <div className="w-full mt-6 pt-6 border-t border-[var(--border-primary)] space-y-3">
+                <div className="flex items-center text-sm text-[var(--text-secondary)]">
+                  <FaCalendarAlt className="mr-3 text-[var(--text-muted)]" />
                   <span>Joined: {formatDate(profileData.createdAt)}</span>
                 </div>
               </div>
@@ -280,8 +283,8 @@ export default function Profile() {
 
           {/* Right column: Edit form */}
           <div className="col-span-1 md:col-span-2">
-            <div className="bg-[#161a23] border border-gray-800 rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-white mb-6 border-b border-gray-800 pb-3">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6 border-b border-[var(--border-primary)] pb-3">
                 Account Details
               </h3>
 
@@ -292,18 +295,20 @@ export default function Profile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                       Full Name
                     </label>
                     <div className="relative">
-                      <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                      <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                       <input
                         type="text"
                         {...register("name")}
                         autoComplete="off"
-                        className="w-full bg-[#0d1117] border text-sm text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all"
+                        className="w-full bg-[var(--bg-surface)] border text-sm text-[var(--text-primary)] rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-[var(--focus-ring)] focus:ring-1 focus:ring-[var(--focus-ring)] transition-all"
                         style={{
-                          borderColor: errors.name ? "#ef4444" : "#374151",
+                          borderColor: errors.name
+                            ? "#ef4444"
+                            : "var(--border-muted)",
                         }}
                       />
                     </div>
@@ -319,18 +324,20 @@ export default function Profile() {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                       Email Address
                     </label>
                     <div className="relative">
-                      <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                      <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                       <input
                         type="email"
                         {...register("email")}
                         autoComplete="off"
-                        className="w-full bg-[#0d1117] border text-sm text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all"
+                        className="w-full bg-[var(--bg-surface)] border text-sm text-[var(--text-primary)] rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-[var(--focus-ring)] focus:ring-1 focus:ring-[var(--focus-ring)] transition-all"
                         style={{
-                          borderColor: errors.email ? "#ef4444" : "#374151",
+                          borderColor: errors.email
+                            ? "#ef4444"
+                            : "var(--border-muted)",
                         }}
                       />
                     </div>
@@ -346,18 +353,20 @@ export default function Profile() {
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                       Phone Number
                     </label>
                     <div className="relative">
-                      <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 rotate-90" />
+                      <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] rotate-90" />
                       <input
                         type="tel"
                         {...register("phone")}
                         autoComplete="off"
-                        className="w-full bg-[#0d1117] border text-sm text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all"
+                        className="w-full bg-[var(--bg-surface)] border text-sm text-[var(--text-primary)] rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-[var(--focus-ring)] focus:ring-1 focus:ring-[var(--focus-ring)] transition-all"
                         style={{
-                          borderColor: errors.phone ? "#ef4444" : "#374151",
+                          borderColor: errors.phone
+                            ? "#ef4444"
+                            : "var(--border-muted)",
                         }}
                       />
                     </div>
@@ -373,20 +382,20 @@ export default function Profile() {
 
                   {/* Department */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                       Department
                     </label>
                     <div className="relative">
-                      <FaBuilding className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                      <FaBuilding className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                       <input
                         type="text"
                         {...register("department")}
                         autoComplete="off"
-                        className="w-full bg-[#0d1117] border text-sm text-white rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all"
+                        className="w-full bg-[var(--bg-surface)] border text-sm text-[var(--text-primary)] rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-[var(--focus-ring)] focus:ring-1 focus:ring-[var(--focus-ring)] transition-all"
                         style={{
                           borderColor: errors.department
                             ? "#ef4444"
-                            : "#374151",
+                            : "var(--border-muted)",
                         }}
                       />
                     </div>

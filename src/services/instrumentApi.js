@@ -1,50 +1,56 @@
 // src/services/instrumentApi.js
 import axiosClient from "./AxiosClient";
 
+const ADMIN_INSTRUMENTS_URL = "/admin/instruments";
+const ENGINEER_INSTRUMENTS_URL = "/engineer/instruments";
+
+const removeEmptyParams = (params = {}) => {
+  const cleanParams = {};
+
+  Object.keys(params).forEach((key) => {
+    if (
+      params[key] !== null &&
+      params[key] !== undefined &&
+      params[key] !== ""
+    ) {
+      cleanParams[key] = params[key];
+    }
+  });
+
+  return cleanParams;
+};
+
 const instrumentApi = {
   /**
-   * 1. Lấy danh sách Instrument (có phân trang và lọc)
+   * 1. Lấy danh sách Instrument cho Admin (có phân trang và lọc)
    */
   getInstrumentList(params) {
-    const url = "/engineer/instruments";
-
-    // Logic làm sạch params: loại bỏ các filter rỗng để tránh lỗi Backend
-    const cleanParams = {};
-    if (params) {
-      Object.keys(params).forEach((key) => {
-        if (
-          params[key] !== null &&
-          params[key] !== undefined &&
-          params[key] !== ""
-        ) {
-          cleanParams[key] = params[key];
-        }
-      });
-    }
-
-    return axiosClient.get(url, { params: cleanParams });
+    return axiosClient.get(ADMIN_INSTRUMENTS_URL, {
+      params: removeEmptyParams(params),
+    });
   },
 
-  /*** 2. Lấy thông tin chi tiết của một Instrument bằng ID
+  /**
+   * 2. Lấy thông tin chi tiết của một Instrument bằng ID (Admin)
    */
   getInstrumentDetail(id) {
-    const url = `/engineer/instruments/${id}`;
+    const url = `${ADMIN_INSTRUMENTS_URL}/${id}`;
     return axiosClient.get(url);
   },
 
   /**
-   * 3. Lấy thông tin Instrument dành riêng cho 3D Simulator
+   * 3. Lấy thông tin Instrument dành riêng cho 3D Simulator (Engineer endpoint)
    */
   getInstrument3DInfo(id) {
-    const url = `/engineer/instruments/${id}/info`;
+    const url = `${ENGINEER_INSTRUMENTS_URL}/${id}/info`;
     return axiosClient.get(url);
   },
 
   /**
-   * 4. Đặt lịch bảo trì cho một Instrument
+   * 4. Đặt lịch bảo trì cho một Instrument (Engineer endpoint)
    */
   scheduleMaintenance(id, maintenanceData) {
-    const url = `/engineer/instruments/${id}/maintenance`;
+    const url = `${ENGINEER_INSTRUMENTS_URL}/${id}/maintenance`;
     return axiosClient.post(url, maintenanceData);
   },
 
@@ -64,8 +70,7 @@ const instrumentApi = {
    * @param {string} [data.warrantyExpiry] - Warranty expiry date
    */
   createInstrument(data) {
-    const url = "/engineer/instruments";
-    return axiosClient.post(url, data);
+    return axiosClient.post(ADMIN_INSTRUMENTS_URL, data);
   },
 
   /**
@@ -74,26 +79,40 @@ const instrumentApi = {
    * @param {Object} data - Updated instrument data
    */
   updateInstrument(id, data) {
-    const url = `/engineer/instruments/${id}`;
+    const url = `${ADMIN_INSTRUMENTS_URL}/${id}`;
     return axiosClient.put(url, data);
   },
 
   /**
-   * 7. Xóa Instrument (soft delete, admin only)
+   * 7. Xóa Instrument (admin only)
    * @param {string|number} id - Instrument ID
    */
   deleteInstrument(id) {
-    const url = `/engineer/instruments/${id}`;
+    const url = `${ADMIN_INSTRUMENTS_URL}/${id}`;
     return axiosClient.delete(url);
   },
 
   /**
-   * 8. Khôi phục Instrument đã xóa (admin only)
+   * 8. Gán Engineer vào Instrument (admin only)
    * @param {string|number} id - Instrument ID
+   * @param {Object} payload - Assignment payload
+   * @param {string} payload.engineerId - Engineer ID
+   * @param {string} [payload.assignmentRole] - Assignment role
    */
-  restoreInstrument(id) {
-    const url = `/engineer/instruments/${id}/restore`;
-    return axiosClient.patch(url);
+  assignEngineer(id, payload) {
+    const url = `${ADMIN_INSTRUMENTS_URL}/${id}/assign-engineer`;
+    return axiosClient.post(url, payload);
+  },
+
+  /**
+   * 9. Gỡ Engineer khỏi Instrument (admin only)
+   * @param {string|number} id - Instrument ID
+   * @param {Object} payload - Remove payload
+   * @param {string} payload.engineerId - Engineer ID
+   */
+  removeEngineer(id, payload) {
+    const url = `${ADMIN_INSTRUMENTS_URL}/${id}/remove-engineer`;
+    return axiosClient.post(url, payload);
   },
 };
 

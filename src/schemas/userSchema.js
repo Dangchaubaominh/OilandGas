@@ -25,14 +25,32 @@ export const userSchema = yup.object().shape({
         if (!value || value.length === 0) return true; // Empty is ok (required check is separate)
         return value.length >= 6;
       },
+    )
+    .test(
+      "password-uppercase",
+      "Password must include at least 1 uppercase letter",
+      function (value) {
+        if (!value || value.length === 0) return true;
+        return /[A-Z]/.test(value);
+      },
+    )
+    .test(
+      "password-special",
+      "Password must include at least 1 special character",
+      function (value) {
+        if (!value || value.length === 0) return true;
+        return /[^A-Za-z0-9]/.test(value);
+      },
     ),
+
+  confirmPassword: yup.string(),
 
   phone: yup
     .string()
     .trim()
     .required("Phone number is required")
     .matches(
-      /(84|0[3|5|7|8|9])+([0-9]{8})\b/g,
+      /^(\+?84|0[3|5|7|8|9])[0-9]{8}$/,
       "Invalid Vietnamese phone number format",
     ),
 
@@ -51,7 +69,16 @@ export const createUserSchema = userSchema.shape({
   password: yup
     .string()
     .required("Password is required")
-    .min(6, "Password must be at least 6 characters"),
+    .min(6, "Password must be at least 6 characters")
+    .matches(/[A-Z]/, "Password must include at least 1 uppercase letter")
+    .matches(
+      /[^A-Za-z0-9]/,
+      "Password must include at least 1 special character",
+    ),
+  confirmPassword: yup
+    .string()
+    .required("Confirm password is required")
+    .oneOf([yup.ref("password")], "Passwords must match"),
 });
 
 // Schema for UPDATE mode - matches PUT /users/{id} fields
@@ -73,10 +100,7 @@ export const updateUserSchema = yup.object().shape({
     .string()
     .trim()
     .required("Phone number is required")
-    .matches(
-      /(84|0[3|5|7|8|9])+([0-9]{8})\b/g,
-      "Invalid Vietnamese phone number format",
-    ),
+    .matches(/^(\+?84|0[3|5|7|8|9])[0-9]{8}$/, "Invalid  phone number format"),
 
   department: yup.string().required("Department is required"),
 

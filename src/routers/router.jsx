@@ -3,10 +3,12 @@ import PrivateRoute from "./PrivateRoute";
 import MainLayout from "../layouts/MainLayouts";
 import Dashboard from "../Pages/Dashboard/DashBoard";
 import UserManagement from "../Pages/UserManagement/UserManagement";
-import RoleManagement from "../Pages/Management/RoleManagement";
+import RoleManagement from "../Pages/Role/RoleManagement";
 import InstrumentManagement from "../Pages/Instrument/InstrumentManagement";
 import Reports from "../Pages/Reports/Reports";
-import Schedule from "../Pages/Management/Schedule";
+import MaintenanceSchedule from "../Pages/MaintenanceSchedule/MaintenanceSchedule";
+import EquipmentDetail from "../Pages/Equipment/EquipmentDetail";
+import InstrumentDetail from "../Pages/Instrument/InstrumentDetail";
 import Settings from "../Pages//Setting/Settings";
 import WarehouseInventory from "../Pages/Warehouse/WarehouseInventory";
 import Simulator from "../Pages/Stimulator/Simulator";
@@ -14,8 +16,6 @@ import EquipmentControl from "../Pages/Equipment/EquipmentControl";
 import Login from "../Pages/Auth/Login";
 import ForgotPassword from "../Pages/Auth/ForgotPassword";
 import Profile from "../Pages/UserProfile/Profile";
-
-// ... Import thêm các trang khác khi cần
 
 export const router = createBrowserRouter([
   // --- NHÓM PUBLIC (Trang đăng nhập) ---
@@ -69,6 +69,14 @@ export const router = createBrowserRouter([
         path: "instrument",
         element: <InstrumentManagement />,
       },
+       {
+        path: "equipment/:id",
+        element: <EquipmentDetail />,
+      },
+      {
+        path: "instrument/:id",
+        element: <InstrumentDetail />,
+      },
       {
         path: "simulator",
         element: <Simulator />,
@@ -83,14 +91,13 @@ export const router = createBrowserRouter([
       },
       {
         path: "schedule",
-        element: <Schedule />,
+        element: <MaintenanceSchedule />,
       },
       {
         path: "settings",
         element: <Settings />,
       },
 
-      // Thêm các Route con khác của dự án Oil & Gas vào đây
     ],
   },
 ]);

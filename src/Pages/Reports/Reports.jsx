@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaDownload, FaPlus, FaSyncAlt, FaTrash } from "react-icons/fa";
+import {
+  FaDownload,
+  FaPlus,
+  FaSearch,
+  FaSyncAlt,
+  FaTimes,
+  FaTrash,
+} from "react-icons/fa";
 import reportsApi from "../../services/reportsApi";
 import { showToast } from "../../utils/toastHandler";
+import ReportsModal from "./ReportsModal";
 
 const REPORT_TYPES = [
   "kpi",
@@ -123,6 +131,7 @@ export default function Reports() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeReportId, setActiveReportId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
     type: "",
     status: "",
@@ -148,6 +157,7 @@ export default function Reports() {
     title: "",
     description: "",
   });
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const reportStats = useMemo(() => {
     const completed = reports.filter(
@@ -165,6 +175,28 @@ export default function Reports() {
       failed,
     };
   }, [pagination.totalItems, reports]);
+
+  const visibleReports = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return reports;
+
+    return reports.filter((report) => {
+      const blob = [
+        report._reportId,
+        report.title,
+        report.description,
+        report.type,
+        report.category,
+        report.status,
+        report.fileInfo?.fileName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return blob.includes(keyword);
+    });
+  }, [reports, searchQuery]);
 
   const fetchReports = useCallback(
     async (page = filters.page) => {
@@ -434,7 +466,7 @@ export default function Reports() {
           </button>
           <button
             className="btn-create"
-            onClick={handleGenerateReport}
+            onClick={() => setShowGenerateModal(true)}
             disabled={isGenerating}
           >
             <FaPlus /> {isGenerating ? "Generating..." : "Generate Report"}
@@ -467,126 +499,26 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="reports-surface reports-surface--generator">
-        <h2 className="section-title">Generate New Report</h2>
-        <div className="report-generator">
-          <label className="field-group reports-title-input">
-            <span className="field-label">Title</span>
-            <input
-              type="text"
-              className="filter-input"
-              placeholder="Report title"
-              value={reportForm.title}
-              onChange={(event) =>
-                handleFormChange("title", event.target.value)
-              }
-            />
-          </label>
-
-          <label className="field-group">
-            <span className="field-label">Type</span>
-            <select
-              className="filter-select"
-              value={reportForm.type}
-              onChange={(event) => handleFormChange("type", event.target.value)}
-            >
-              {REPORT_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {formatLabel(type)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-group">
-            <span className="field-label">Category</span>
-            <select
-              className="filter-select"
-              value={reportForm.category}
-              onChange={(event) =>
-                handleFormChange("category", event.target.value)
-              }
-            >
-              {REPORT_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {formatLabel(category)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-group">
-            <span className="field-label">Format</span>
-            <select
-              className="filter-select"
-              value={reportForm.format}
-              onChange={(event) =>
-                handleFormChange("format", event.target.value)
-              }
-            >
-              {REPORT_FORMATS.map((format) => (
-                <option key={format} value={format}>
-                  {format.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-group">
-            <span className="field-label">Template</span>
-            <select
-              className="filter-select"
-              value={reportForm.template}
-              onChange={(event) =>
-                handleFormChange("template", event.target.value)
-              }
-            >
-              {REPORT_TEMPLATES.map((template) => (
-                <option key={template} value={template}>
-                  {formatLabel(template)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="field-group date-range-filter">
-            <span className="field-label">Date Range</span>
-            <div className="date-range-inputs">
-              <input
-                type="date"
-                className="filter-input"
-                value={reportForm.from}
-                onChange={(event) =>
-                  handleFormChange("from", event.target.value)
-                }
-              />
-              <span className="date-separator">-</span>
-              <input
-                type="date"
-                className="filter-input"
-                value={reportForm.to}
-                onChange={(event) => handleFormChange("to", event.target.value)}
-              />
-            </div>
-          </div>
-
-          <label className="field-group reports-description-input">
-            <span className="field-label">Description</span>
-            <input
-              type="text"
-              className="filter-input"
-              placeholder="Optional description"
-              value={reportForm.description}
-              onChange={(event) =>
-                handleFormChange("description", event.target.value)
-              }
-            />
-          </label>
-        </div>
-      </div>
-
       <div className="reports-surface reports-surface--filters">
         <h2 className="section-title">Filters</h2>
+        <div className="search-box reports-search-box">
+          <FaSearch className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search by report id, title, type, or category..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="search-clear"
+              onClick={() => setSearchQuery("")}
+            >
+              <FaTimes />
+            </button>
+          )}
+        </div>
         <div className="reports-filters">
           <label className="field-group compact-field">
             <span className="field-label">Type</span>
@@ -677,7 +609,9 @@ export default function Reports() {
         <span>
           {isLoading
             ? "Loading reports..."
-            : `${pagination.totalItems} reports found`}
+            : searchQuery
+              ? `${visibleReports.length} reports matched on this page`
+              : `${pagination.totalItems} reports found`}
         </span>
         <span>
           Page {pagination.currentPage} / {pagination.totalPages}
@@ -699,15 +633,15 @@ export default function Reports() {
               </tr>
             </thead>
             <tbody>
-              {!isLoading && reports.length === 0 && (
+              {!isLoading && visibleReports.length === 0 && (
                 <tr>
                   <td colSpan="7" className="empty-state-cell">
-                    No reports found for the selected filters.
+                    No reports found for the selected filters/search.
                   </td>
                 </tr>
               )}
 
-              {reports.map((report) => {
+              {visibleReports.map((report) => {
                 const created = formatDateTime(report.createdAt);
                 const isBusy = activeReportId === report._reportId;
 
@@ -817,6 +751,18 @@ export default function Reports() {
           Next
         </button>
       </div>
+
+      <ReportsModal
+        isOpen={showGenerateModal}
+        isGenerating={isGenerating}
+        reportForm={reportForm}
+        onFormChange={handleFormChange}
+        onGenerate={async () => {
+          await handleGenerateReport();
+          setShowGenerateModal(false);
+        }}
+        onClose={() => setShowGenerateModal(false)}
+      />
     </div>
   );
 }

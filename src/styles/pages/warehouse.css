@@ -14,8 +14,14 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: all 0.2s;
+}
+
+.btn-equipment-inventory svg {
+  font-size: 14px;
+  display: block;
 }
 
 .btn-equipment-inventory:hover {
@@ -190,5 +196,220 @@
   .equipment-sections {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+}
+
+/* ── Add Warehouse button ── */
+.btn-add-warehouse {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-add-warehouse svg {
+  font-size: 14px;
+  display: block;
+}
+.btn-add-warehouse:hover {
+  background: var(--bg-card);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+/* ── Dispatch button ── */
+.btn-dispatch {
+  background: transparent;
+  color: #a78bfa;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-dispatch:hover {
+  background: rgba(167, 139, 250, 0.15);
+  border-color: #a78bfa;
+}
+
+.btn-dispatch-confirm {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-dispatch-confirm svg {
+  font-size: 14px;
+  display: block;
+}
+.btn-dispatch-confirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+/* ── Export CSV button ── */
+.btn-export-csv {
+  background: transparent;
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.btn-export-csv:hover {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: #34d399;
+}
+
+/* ── Cap alert ── */
+.cap-alert {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* ── View inventory modal wide ── */
+.view-inventory-modal {
+  max-width: 800px;
+}
+
+/* ── Receive modal ── */
+.receive-inventory-modal {
+  max-width: 520px;
+}
+
+/* ── Table footer ── */
+.table-footer-bar {
+  padding: 14px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border-color);
+}
+.wh-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.wh-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.wh-stat-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.wh-stat-icon.blue   { color: #3b82f6; }
+.wh-stat-icon.green  { color: #10b981; }
+.wh-stat-icon.purple { color: #8b5cf6; }
+.wh-stat-icon.orange { color: #f59e0b; }
+
+.wh-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.wh-stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ── Filter Bar ── */
+.wh-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.wh-filter-bar .search-box {
+  flex: 1;
+  min-width: 200px;
+}
+
+.wh-status-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.wh-filter-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wh-filter-btn:hover,
+.wh-filter-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+@media (max-width: 900px) {
+  .wh-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .wh-stats-grid {
+    grid-template-columns: 1fr;
   }
 }

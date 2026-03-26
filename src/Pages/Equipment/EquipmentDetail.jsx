@@ -1,64 +1,39 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  FaArrowLeft,
-  FaFileAlt,
-  FaFileExport,
-  FaFolder,
-  FaSync,
-} from "react-icons/fa";
-import equipmentApi from "../../services/equipmentApi";
-
+import { FaArrowLeft, FaFileAlt, FaFileExport, FaSync } from "react-icons/fa";
+import adminEquipmentApi from "../../services/adminEquipmentApi";
 export default function EquipmentDetail() {
-  const { id } = useParams(); // Lấy ID thiết bị từ URL (ví dụ: /app/equipment/123)
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  // State quản lý dữ liệu từ API
   const [equipment, setEquipment] = useState(null);
-  const [controlInfo, setControlInfo] = useState(null);
   const [maintenanceHistory, setMaintenanceHistory] = useState([]);
 
-  // State quản lý trạng thái tải
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Dữ liệu tạm cho các phần Backend chưa có API (Tài liệu, Metric)
-  const [documents] = useState([
-    { id: 1, name: "User manual v3.1.docx", icon: "blue" },
-    { id: 2, name: "Calibration report", icon: "green" },
-  ]);
-
-  // Hàm gọi API đồng thời
   const fetchEquipmentDetails = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Gọi cả 3 API cùng lúc bằng Promise.all để tăng tốc độ load
-      const [equipRes, controlRes, maintenanceRes] = await Promise.allSettled([
-        equipmentApi.getEquipmentDetail(id),
-        equipmentApi.getControlInformation(id),
-        equipmentApi.getEquipmentMaintenanceHistory(id),
+      const [equipRes, maintenanceRes] = await Promise.allSettled([
+        adminEquipmentApi.getById(id),
+        adminEquipmentApi.getMaintenanceHistory(id),
       ]);
 
-      // Xử lý dữ liệu Chi tiết thiết bị (Bắt buộc)
       if (equipRes.status === "fulfilled") {
         setEquipment(equipRes.value.data?.data || equipRes.value.data);
       } else {
-        throw new Error("Không thể tải thông tin thiết bị");
+        throw new Error("Cannot load equipment details");
       }
 
-      // Xử lý dữ liệu Control (Bỏ qua nếu lỗi, vì có thể thiết bị không có dữ liệu live)
-      if (controlRes.status === "fulfilled") {
-        setControlInfo(controlRes.value.data?.data || controlRes.value.data);
-      }
-
-      // Xử lý dữ liệu Maintenance
       if (maintenanceRes.status === "fulfilled") {
-        setMaintenanceHistory(maintenanceRes.value.data?.data || []);
+        const records = maintenanceRes.value.data?.data;
+        setMaintenanceHistory(Array.isArray(records) ? records : []);
       }
     } catch (err) {
-      console.error("Lỗi khi tải chi tiết thiết bị:", err);
-      setError(err.message || "Đã xảy ra lỗi khi tải dữ liệu");
+      console.error("Error loading equipment details:", err);
+      setError(err.message || "Failed to load equipment details");
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +45,6 @@ export default function EquipmentDetail() {
     }
   }, [id]);
 
-  // --- HELPERS ---
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("en-GB", {
@@ -80,7 +54,6 @@ export default function EquipmentDetail() {
     });
   };
 
-  // Tính thời gian cài đặt (Age)
   const calculateAge = (dateString) => {
     if (!dateString) return "-";
     const installDate = new Date(dateString);
@@ -91,22 +64,6 @@ export default function EquipmentDetail() {
     return `${months} Months`;
   };
 
-  // Helper for status badge class
-  const getStatusClass = (status) => {
-    const lowerStatus = status?.toLowerCase() || "";
-    if (lowerStatus === "active" || lowerStatus === "operational")
-      return "badge-active";
-    if (lowerStatus === "maintenance") return "badge-maintenance";
-    if (
-      lowerStatus === "faulty" ||
-      lowerStatus === "inactive" ||
-      lowerStatus === "out-of-service"
-    )
-      return "badge-faulty";
-    return "badge-warning";
-  };
-
-  // Render trạng thái (Loading/Error)
   if (isLoading) {
     return (
       <div style={{ textAlign: "center", padding: "100px", color: "#64748b" }}>
@@ -127,20 +84,19 @@ export default function EquipmentDetail() {
   if (error || !equipment) {
     return (
       <div style={{ textAlign: "center", padding: "100px", color: "#ef4444" }}>
-        <h2>Lỗi!</h2>
-        <p>{error || "Không tìm thấy thiết bị."}</p>
+        <h2>Error</h2>
+        <p>{error || "Equipment not found."}</p>
         <button
           className="btn-secondary"
           onClick={() => navigate("/app/equipment")}
           style={{ marginTop: "20px" }}
         >
-          Quay lại danh sách
+          Back to list
         </button>
       </div>
     );
   }
 
-  // Bắt đầu render giao diện với dữ liệu thực
   return (
     <div className="equipment-detail-page">
       <div className="detail-header">
@@ -151,12 +107,13 @@ export default function EquipmentDetail() {
         <div className="equipment-title-section">
           <div className="equipment-title-left">
             <h1>{equipment.name || "Unknown Equipment"}</h1>
-            <span className={`badge ${getStatusClass(equipment.status)}`}>
+            <span
+              className={`badge ${equipment.status?.toLowerCase() === "operational" ? "badge-active" : "badge-warning"}`}
+            >
               {equipment.status || "N/A"}
             </span>
           </div>
           <div className="detail-actions">
-            {/* Nút Refresh dữ liệu Live */}
             <button
               className="btn-secondary"
               onClick={fetchEquipmentDetails}
@@ -178,9 +135,7 @@ export default function EquipmentDetail() {
       </div>
 
       <div className="equipment-content">
-        {/* Left Column */}
         <div className="equipment-left">
-          {/* Equipment Specifications */}
           <div className="equipment-card">
             <div className="card-header-with-btn">
               <h3>Equipment Specifications</h3>
@@ -190,9 +145,7 @@ export default function EquipmentDetail() {
               <div className="spec-item">
                 <label>Equipment ID</label>
                 <span>
-                  {equipment.id ||
-                    String(equipment._id || "").substring(0, 8) ||
-                    "-"}
+                  {equipment.id || equipment._id?.substring(0, 8) || "-"}
                 </span>
               </div>
               <div className="spec-item">
@@ -226,73 +179,64 @@ export default function EquipmentDetail() {
             </div>
           </div>
 
-          {/* Operational Status (Dữ liệu từ API Control) */}
           <div className="equipment-card">
-            <h3>Operational Status (Live)</h3>
+            <h3>Operational Status</h3>
 
             <div className="status-grid">
               <div className="status-box">
                 <label>Operating Status</label>
                 <div className="status-value">
                   <span
-                    className={`value-large ${controlInfo?.status === "Normal" ? "status-success" : "status-warning"}`}
+                    className={`value-large ${equipment.status?.toLowerCase() === "operational" ? "status-success" : "status-warning"}`}
                   >
-                    {controlInfo?.status || "N/A"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Map các thông số Live từ API. Ví dụ: controlInfo.settings.temperature */}
-              <div className="status-box">
-                <label>Temperature</label>
-                <div className="status-value">
-                  <span className="value-large">
-                    {controlInfo?.settings?.temperature || "--"} °C
+                    {equipment.status || "N/A"}
                   </span>
                 </div>
               </div>
 
               <div className="status-box">
-                <label>Pressure</label>
+                <label>Location</label>
                 <div className="status-value">
                   <span className="value-large">
-                    {controlInfo?.settings?.pressure || "--"} PSI
+                    {equipment.location || "--"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="status-box">
+                <label>Last Updated</label>
+                <div className="status-value">
+                  <span className="value-large">
+                    {formatDate(equipment.updatedAt || equipment.createdAt)}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Linked Documents (Giữ nguyên Mock Data vì Swagger chưa có) */}
           <div className="equipment-card">
             <div className="card-header-with-btn">
               <h3>Linked Documents</h3>
-              <button className="btn-browse">
-                <FaFolder /> Browse
-              </button>
             </div>
             <div className="documents-list">
-              {documents.map((doc) => (
-                <div key={doc.id} className="document-item">
-                  <div className={`document-icon document-icon-${doc.icon}`}>
-                    <FaFileAlt />
-                  </div>
-                  <div className="document-info">
-                    <span className="document-name">{doc.name}</span>
-                  </div>
+              <div className="document-item">
+                <div className="document-icon document-icon-blue">
+                  <FaFileAlt />
                 </div>
-              ))}
+                <div className="document-info">
+                  <span className="document-name">
+                    No document API data available for this equipment.
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
         <div className="equipment-right">
-          {/* Current Condition & Tech Specs */}
           <div className="equipment-card">
             <h3>Technical Specifications</h3>
             <div className="condition-grid">
-              {/* Hiển thị object technicalSpecs từ API Equipment */}
               {equipment.technicalSpecs ? (
                 Object.entries(equipment.technicalSpecs).map(([key, value]) => (
                   <div className="condition-item" key={key}>
@@ -312,7 +256,6 @@ export default function EquipmentDetail() {
             </div>
           </div>
 
-          {/* Maintenance Information (Dữ liệu từ API Maintenance) */}
           <div className="equipment-card">
             <h3>Maintenance History</h3>
 
@@ -351,43 +294,24 @@ export default function EquipmentDetail() {
             </div>
           </div>
 
-          {/* Recent Alerts (Dữ liệu từ API Control) */}
           <div className="equipment-card">
             <div className="card-header-with-icon">
               <h3>Recent Alerts</h3>
-              <span
-                className={`alert-count ${controlInfo?.alerts?.length > 0 ? "alert-count-danger" : "alert-count-info"}`}
-              >
-                {controlInfo?.alerts?.length || 0}
-              </span>
+              <span className="alert-count alert-count-info">0</span>
             </div>
 
             <div className="alerts-list">
-              {controlInfo?.alerts && controlInfo.alerts.length > 0 ? (
-                controlInfo.alerts.map((alert, idx) => (
-                  <div key={idx} className="alert-item alert-danger">
-                    <div className="alert-icon">🔴</div>
-                    <div className="alert-content">
-                      <p className="alert-message">
-                        {alert.message || "Alert Triggered"}
-                      </p>
-                      <span className="alert-time">
-                        {formatDate(alert.timestamp)}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="alert-item alert-info">
-                  <div className="alert-icon">🟢</div>
-                  <div className="alert-content">
-                    <p className="alert-message">No Critical Alerts</p>
-                    <span className="alert-time">
-                      All systems operating normally
-                    </span>
-                  </div>
+              <div className="alert-item alert-info">
+                <div className="alert-icon">🟢</div>
+                <div className="alert-content">
+                  <p className="alert-message">
+                    No alert API endpoint configured for equipment details.
+                  </p>
+                  <span className="alert-time">
+                    Data shown in this page is loaded from backend APIs only.
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

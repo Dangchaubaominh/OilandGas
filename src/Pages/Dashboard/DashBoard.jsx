@@ -6,7 +6,7 @@ import {
   FaOilCan,
   FaClock,
 } from "react-icons/fa";
-import dashboardApi from "../../services/dashBoardApi";
+import dashboardApi from "../../services/dashboardApi";
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -33,12 +33,24 @@ export default function Dashboard() {
           oilOutputResponse?.data ||
           oilOutputResponse;
 
-        // Transform dashboard data to match component expectations
+        // Transform dashboard data to match new API response structure
         const transformedData = {
-          operationalEquipment: dashboardPayload?.equipment_count || 0,
-          maintenancePending: dashboardPayload?.maintenance_counts || 0,
-          openIncidents: dashboardPayload?.incidents_counts || 0,
-          criticalAlerts: dashboardPayload?.incidents_counts || 0,
+          operationalEquipment:
+            (dashboardPayload?.equipment?.operational || 0) +
+            (dashboardPayload?.instruments?.operational || 0),
+          maintenancePending: dashboardPayload?.maintenance?.pending || 0,
+          openIncidents: dashboardPayload?.incidents?.open || 0,
+          criticalAlerts: dashboardPayload?.incidents?.open || 0, // Adjust if you have a separate field for critical
+          equipment: dashboardPayload?.equipment || {
+            total: 0,
+            operational: 0,
+            nonOperational: 0,
+          },
+          instruments: dashboardPayload?.instruments || {
+            total: 0,
+            operational: 0,
+            nonOperational: 0,
+          },
           timestamp: new Date().toISOString(),
           todayProduction: {
             value: oilPayload?.value || 0,
@@ -107,10 +119,10 @@ export default function Dashboard() {
     [dashboardData],
   );
 
+  // Total equipment and instruments
   const equipmentTotal =
-    Number(dashboardData?.operationalEquipment || 0) +
-    Number(dashboardData?.maintenancePending || 0) +
-    Number(dashboardData?.criticalAlerts || 0);
+    Number(dashboardData?.equipment?.total || 0) +
+    Number(dashboardData?.instruments?.total || 0);
 
   const maintenanceActivities = [
     {
