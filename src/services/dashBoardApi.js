@@ -1,7 +1,7 @@
 // src/services/dashboardApi.js
 import axiosClient from "./AxiosClient";
 
-const dashboardApi = {
+const dashBoardApi = {
   // 1. Get general dashboard statistics
   getDashboard(params = {}) {
     const url = "admin/dashboard";
@@ -29,4 +29,4 @@ const dashboardApi = {
   },
 };
 
-export default dashboardApi;
+export default dashBoardApi;

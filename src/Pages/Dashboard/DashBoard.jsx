@@ -6,7 +6,7 @@ import {
   FaOilCan,
   FaClock,
 } from "react-icons/fa";
-import dashboardApi from "../../services/dashboardApi";
+import dashboardApi from "../../services/dashBoardApi";
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
