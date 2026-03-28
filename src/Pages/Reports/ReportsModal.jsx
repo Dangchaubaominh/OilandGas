@@ -16,7 +16,7 @@ const REPORT_CATEGORIES = [
   "financial",
   "regulatory",
 ];
-const REPORT_FORMATS = ["pdf", "excel", "csv"];
+const REPORT_FORMATS = ["pdf", "csv"];
 const REPORT_TEMPLATES = ["standard", "executive", "detailed"];
 
 const formatLabel = (value = "") =>

@@ -16,6 +16,7 @@ import EquipmentControl from "../Pages/Equipment/EquipmentControl";
 import Login from "../Pages/Auth/Login";
 import ForgotPassword from "../Pages/Auth/ForgotPassword";
 import Profile from "../Pages/UserProfile/Profile";
+import RouteErrorPage from "../Pages/Error/RouteErrorPage";
 
 export const router = createBrowserRouter([
   // --- NHÓM PUBLIC (Trang đăng nhập) ---
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
         <MainLayout />
       </PrivateRoute>
     ),
+    errorElement: <RouteErrorPage />,
     children: [
       {
         index: true,
@@ -69,7 +71,7 @@ export const router = createBrowserRouter([
         path: "instrument",
         element: <InstrumentManagement />,
       },
-       {
+      {
         path: "equipment/:id",
         element: <EquipmentDetail />,
       },
@@ -97,7 +99,6 @@ export const router = createBrowserRouter([
         path: "settings",
         element: <Settings />,
       },
-
     ],
   },
 ]);

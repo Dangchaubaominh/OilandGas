@@ -7,6 +7,7 @@ import {
   FaTimes,
   FaTrash,
 } from "react-icons/fa";
+import { jsPDF } from "jspdf";
 import reportsApi from "../../services/reportsApi";
 import { showToast } from "../../utils/toastHandler";
 import ReportsModal from "./ReportsModal";
@@ -34,7 +35,7 @@ const REPORT_CATEGORIES = [
   "financial",
   "regulatory",
 ];
-const REPORT_FORMATS = ["pdf", "excel", "csv"];
+const REPORT_FORMATS = ["pdf", "csv"];
 const REPORT_TEMPLATES = ["standard", "executive", "detailed"];
 const DEFAULT_LIMIT = 10;
 
@@ -81,7 +82,11 @@ const normalizeReport = (report = {}) => {
     fileInfo: {
       fileName: fileInfo.fileName || report.fileName || null,
       fileSize: fileInfo.fileSize || report.fileSize || null,
-      format: fileInfo.format || report.format || null,
+      format:
+        fileInfo.format ||
+        report.format ||
+        getFileExtension(fileInfo.fileName || report.fileName || "") ||
+        null,
     },
   };
 };
@@ -111,16 +116,38 @@ const normalizeReportsResponse = (response, fallbackPage, fallbackLimit) => {
   };
 };
 
-const getFilenameFromHeaders = (headers, fallbackName) => {
-  const disposition =
-    headers?.["content-disposition"] || headers?.["Content-Disposition"];
-  const match = disposition?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+const getFileExtension = (value = "") => {
+  const parts = String(value).split(".");
+  if (parts.length < 2) return "";
+  return parts[parts.length - 1].toLowerCase();
+};
 
-  if (!match?.[1]) {
-    return fallbackName;
+const sanitizeFileName = (value = "report") =>
+  String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-_]/g, "") || "report";
+
+const escapeCsvValue = (value) => {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value).replace(/"/g, '""');
+  if (/[",\n]/.test(stringValue)) {
+    return `"${stringValue}"`;
   }
+  return stringValue;
+};
 
-  return match[1].replace(/['"]/g, "");
+const triggerFileDownload = (fileContent, fileName, mimeType) => {
+  const blob = new Blob([fileContent], { type: mimeType });
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
 };
 
 const getErrorMessage = (error, fallback) =>
@@ -382,7 +409,7 @@ export default function Reports() {
     }
   };
 
-  const handleDownloadReport = async (report) => {
+  const handleDownloadReport = async (report, requestedFormat) => {
     const reportId = report._reportId;
 
     if (!reportId) {
@@ -393,22 +420,98 @@ export default function Reports() {
     setActiveReportId(reportId);
 
     try {
-      const response = await reportsApi.downloadReport(reportId);
-      const fallbackExtension =
-        report.fileInfo?.format || reportForm.format || "pdf";
-      const fallbackName = `${(report.title || "report").replace(/\s+/g, "-").toLowerCase()}.${fallbackExtension}`;
-      const fileName = getFilenameFromHeaders(response.headers, fallbackName);
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
+      const normalizedRequestedFormat = (
+        requestedFormat ||
+        report.fileInfo?.format ||
+        reportForm.format ||
+        "pdf"
+      )
+        .toLowerCase()
+        .trim();
+      const baseFileName = sanitizeFileName(
+        report.title || report._reportId || report.reportCode || "report",
+      );
 
-      link.href = blobUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      if (normalizedRequestedFormat === "csv") {
+        const csvHeaders = [
+          "Report ID",
+          "Title",
+          "Type",
+          "Category",
+          "Status",
+          "Description",
+          "Created At",
+          "Progress",
+          "File Name",
+          "File Size",
+        ];
+        const csvRow = [
+          report._reportId || "",
+          report.title || "",
+          report.type || "",
+          report.category || "",
+          report.status || "",
+          report.description || "",
+          report.createdAt || "",
+          report.progress ?? "",
+          report.fileInfo?.fileName || "",
+          report.fileInfo?.fileSize ?? "",
+        ];
+        const csvContent = `${csvHeaders.map(escapeCsvValue).join(",")}\n${csvRow.map(escapeCsvValue).join(",")}`;
+        triggerFileDownload(
+          csvContent,
+          `${baseFileName}.csv`,
+          "text/csv;charset=utf-8;",
+        );
+        showToast("success", "Report CSV downloaded successfully.");
+        return;
+      }
 
-      showToast("success", "Report download started.");
+      if (normalizedRequestedFormat === "pdf") {
+        const doc = new jsPDF({ unit: "pt", format: "a4" });
+        const left = 40;
+        const pageHeight = doc.internal.pageSize.getHeight();
+        let y = 50;
+
+        const drawField = (label, value) => {
+          if (y > pageHeight - 60) {
+            doc.addPage();
+            y = 50;
+          }
+          doc.setFont("helvetica", "bold");
+          doc.text(`${label}:`, left, y);
+          doc.setFont("helvetica", "normal");
+          const wrapped = doc.splitTextToSize(
+            String(value ?? "-"),
+            doc.internal.pageSize.getWidth() - left * 2 - 80,
+          );
+          doc.text(wrapped, left + 80, y);
+          y += 22 + (wrapped.length - 1) * 14;
+        };
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.text("Technical Report", left, y);
+        y += 30;
+        doc.setFontSize(11);
+
+        drawField("Report ID", report._reportId || "-");
+        drawField("Title", report.title || "-");
+        drawField("Type", formatLabel(report.type || "-"));
+        drawField("Category", formatLabel(report.category || "-"));
+        drawField("Status", formatLabel(report.status || "-"));
+        drawField("Created At", report.createdAt || "-");
+        drawField("Progress", report.progress ?? "-");
+        drawField("Description", report.description || "-");
+        drawField("File Name", report.fileInfo?.fileName || "-");
+        drawField("File Size", report.fileInfo?.fileSize || "-");
+
+        doc.save(`${baseFileName}.pdf`);
+        showToast("success", "Report PDF downloaded successfully.");
+        return;
+      }
+
+      showToast("warning", "Unsupported export format.");
     } catch (error) {
       showToast("error", getErrorMessage(error, "Failed to download report."));
     } finally {
@@ -699,11 +802,19 @@ export default function Reports() {
                         </button>
                         <button
                           className="btn-icon btn-edit"
-                          onClick={() => handleDownloadReport(report)}
+                          onClick={() => handleDownloadReport(report, "pdf")}
                           disabled={isBusy || !report.canDownload}
-                          title="Download report"
+                          title="Export PDF"
                         >
                           <FaDownload />
+                        </button>
+                        <button
+                          className="btn-icon btn-edit"
+                          onClick={() => handleDownloadReport(report, "csv")}
+                          disabled={isBusy || !report.canDownload}
+                          title="Export CSV"
+                        >
+                          CSV
                         </button>
                         <button
                           className="btn-icon btn-delete"

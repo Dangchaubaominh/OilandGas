@@ -22,11 +22,14 @@ const reportsApi = {
   },
 
   // 4. Tải xuống file report
-  downloadReport(id) {
+  downloadReport(id, format) {
     if (!id) throw new Error("Missing report id");
     const safeId = encodeURIComponent(id);
     const url = `/engineer/reports/${safeId}/download`;
-    return axiosClient.get(url, { responseType: "blob" });
+    return axiosClient.get(url, {
+      params: format ? { format } : undefined,
+      responseType: "blob",
+    });
   },
 
   // 5. Xóa mềm report theo ID

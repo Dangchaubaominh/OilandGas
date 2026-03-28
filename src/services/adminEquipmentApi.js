@@ -4,7 +4,7 @@ import axiosClient from "./AxiosClient";
 const adminEquipmentApi = {
   // 0. Lấy thống kê
   getStats() {
-    return axiosClient.get("/admin/equipment/stats");
+    return axiosClient.get("engineer/equipment/stats");
   },
 
   // 1. Lấy danh sách tất cả equipment (admin)

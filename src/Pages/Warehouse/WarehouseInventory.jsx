@@ -33,16 +33,40 @@ const EMPTY_DISPATCH = {
   actionDate: new Date().toISOString().split("T")[0],
 };
 
+const toDisplayText = (value, fallback = "") => {
+  if (value == null) return fallback;
+  if (typeof value === "string" || typeof value === "number")
+    return String(value);
+  if (Array.isArray(value)) {
+    const parts = value.map((item) => toDisplayText(item)).filter(Boolean);
+    return parts.join(", ") || fallback;
+  }
+
+  if (typeof value === "object") {
+    const namedParts = [value.address, value.city, value.country]
+      .map((item) => toDisplayText(item))
+      .filter(Boolean);
+
+    if (namedParts.length > 0) {
+      return namedParts.join(", ");
+    }
+
+    return fallback;
+  }
+
+  return fallback;
+};
+
 const normalizeWarehouses = (payload) => {
   const rows = payload?.data?.warehouses || payload?.warehouses || [];
   return Array.isArray(rows)
     ? rows.map((item) => ({
         _id: item._id,
-        name: item.name,
-        location: item.location,
+        name: toDisplayText(item.name, "Unnamed warehouse"),
+        location: toDisplayText(item.location, "Unknown location"),
         capacity: Number(item.capacity || 0),
         currentLoad: Number(item.currentLoad || 0),
-        description: item.description || "",
+        description: toDisplayText(item.description),
         status: item.status || "active",
       }))
     : [];
@@ -60,24 +84,36 @@ export default function WarehouseInventory() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const [whModal, setWhModal] = useState({ open: false, mode: "create", data: null });
+  const [whModal, setWhModal] = useState({
+    open: false,
+    mode: "create",
+    data: null,
+  });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, wh: null });
   const [viewModal, setViewModal] = useState({ open: false, wh: null });
   const [receiveModal, setReceiveModal] = useState(false);
-  const [dispatchModal, setDispatchModal] = useState({ open: false, warehouse: null });
+  const [dispatchModal, setDispatchModal] = useState({
+    open: false,
+    warehouse: null,
+  });
 
   const [whForm, setWhForm] = useState(EMPTY_WH);
   const [receiveForm, setReceiveForm] = useState(EMPTY_RECEIVE);
   const [dispatchForm, setDispatchForm] = useState(EMPTY_DISPATCH);
   const [capAlert, setCapAlert] = useState(null);
   const [viewLogs, setViewLogs] = useState([]);
-  const [logFilters, setLogFilters] = useState({ type: "all", minQty: "", maxQty: "" });
+  const [logFilters, setLogFilters] = useState({
+    type: "all",
+    minQty: "",
+    maxQty: "",
+  });
   const [equipments, setEquipments] = useState([]);
 
   const loadEquipments = async () => {
     try {
       const res = await equipmentApi.getEquipmentList({ limit: 1000 });
-      const list = res?.data?.equipment || res?.data?.data || res?.equipment || [];
+      const list =
+        res?.data?.equipment || res?.data?.data || res?.equipment || [];
       setEquipments(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error("Failed to load equipments", err);
@@ -90,10 +126,17 @@ export default function WarehouseInventory() {
   const fetchWarehouses = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await warehouseApi.getAll({ page: 1, limit: 200, search: search || undefined });
+      const response = await warehouseApi.getAll({
+        page: 1,
+        limit: 200,
+        search: search || undefined,
+      });
       setWarehouses(normalizeWarehouses(response.data));
     } catch (err) {
-      showToast("error", err?.response?.data?.message || "Failed to load warehouses");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to load warehouses",
+      );
     } finally {
       setLoading(false);
     }
@@ -118,10 +161,12 @@ export default function WarehouseInventory() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return warehouses.filter((w) => {
+      const safeName = toDisplayText(w.name).toLowerCase();
+      const safeLocation = toDisplayText(w.location).toLowerCase();
       const matchSearch =
         !q ||
-        w.name.toLowerCase().includes(q) ||
-        w.location.toLowerCase().includes(q) ||
+        safeName.includes(q) ||
+        safeLocation.includes(q) ||
         String(w._id).toLowerCase().includes(q);
       const matchStatus = statusFilter === "all" || w.status === statusFilter;
       return matchSearch && matchStatus;
@@ -129,11 +174,22 @@ export default function WarehouseInventory() {
   }, [warehouses, search, statusFilter]);
 
   const uniqueLocations = useMemo(() => {
-    return [...new Set(warehouses.map(w => w.location).filter(Boolean)), "Main Base", "Offshore Platform", "Storage Facility A", "Storage Facility B"];
+    return [
+      ...new Set(warehouses.map((w) => w.location).filter(Boolean)),
+      "Main Base",
+      "Offshore Platform",
+      "Storage Facility A",
+      "Storage Facility B",
+    ];
   }, [warehouses]);
 
   const pct = (load, cap) => (cap > 0 ? Math.round((load / cap) * 100) : 0);
-  const capClass = (p) => (p >= 75 ? "capacity-critical" : p >= 60 ? "capacity-warning" : "capacity-good");
+  const capClass = (p) =>
+    p >= 75
+      ? "capacity-critical"
+      : p >= 60
+        ? "capacity-warning"
+        : "capacity-good";
   const statClass = (s) => (s === "active" ? "badge-active" : "badge-inactive");
 
   const openCreate = () => {
@@ -151,7 +207,8 @@ export default function WarehouseInventory() {
     setWhModal({ open: true, mode: "edit", data: wh });
   };
 
-  const closeWhModal = () => setWhModal({ open: false, mode: "create", data: null });
+  const closeWhModal = () =>
+    setWhModal({ open: false, mode: "create", data: null });
 
   const handleSaveWh = async (e) => {
     e.preventDefault();
@@ -173,7 +230,10 @@ export default function WarehouseInventory() {
       closeWhModal();
       await fetchWarehouses();
     } catch (err) {
-      showToast("error", err?.response?.data?.message || "Failed to save warehouse");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to save warehouse",
+      );
     }
   };
 
@@ -190,12 +250,19 @@ export default function WarehouseInventory() {
 
     try {
       const shouldForceDelete = Number(wh.currentLoad || 0) > 0;
-      await warehouseApi.delete(wh._id, "Deleted from admin inventory screen", shouldForceDelete);
+      await warehouseApi.delete(
+        wh._id,
+        "Deleted from admin inventory screen",
+        shouldForceDelete,
+      );
       showToast("success", "Warehouse deleted successfully");
       setDeleteConfirm({ open: false, wh: null });
       await fetchWarehouses();
     } catch (err) {
-      showToast("error", err?.response?.data?.message || "Failed to delete warehouse");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to delete warehouse",
+      );
     }
   };
 
@@ -212,21 +279,21 @@ export default function WarehouseInventory() {
         quantity: receiveForm.quantity,
         supplierOrDestination: receiveForm.supplierOrDestination,
       };
-      
+
       if (receiveForm.actionDate) {
         payload.actionDate = receiveForm.actionDate;
       }
-      
+
       // Clean up equipmentId: only send if explicitly set and not empty string
       if (receiveForm.equipmentId && receiveForm.equipmentId.trim() !== "") {
         payload.equipmentId = receiveForm.equipmentId.trim();
       }
-      
+
       // Only include note if it's not empty
       if (receiveForm.note && receiveForm.note.trim() !== "") {
         payload.note = receiveForm.note.trim();
       }
-      
+
       await warehouseApi.receive(payload);
       showToast("success", "Inventory received successfully");
       setReceiveModal(false);
@@ -235,7 +302,10 @@ export default function WarehouseInventory() {
         await loadLogs(viewModal.wh._id);
       }
     } catch (err) {
-      showToast("error", err?.response?.data?.message || "Failed to receive inventory");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to receive inventory",
+      );
     }
   };
 
@@ -249,11 +319,11 @@ export default function WarehouseInventory() {
         quantity: dispatchForm.quantity,
         supplierOrDestination: dispatchForm.supplierOrDestination,
       };
-      
+
       if (dispatchForm.actionDate) {
         payload.actionDate = dispatchForm.actionDate;
       }
-      
+
       if (dispatchForm.equipmentId && dispatchForm.equipmentId.trim() !== "") {
         payload.equipmentId = dispatchForm.equipmentId.trim();
       }
@@ -264,13 +334,21 @@ export default function WarehouseInventory() {
       await warehouseApi.dispatch(payload);
       showToast("success", "Inventory dispatched successfully");
       setDispatchModal({ open: false, warehouse: null });
-      setDispatchForm({ quantity: "", supplierOrDestination: "", note: "", equipmentId: "" });
+      setDispatchForm({
+        quantity: "",
+        supplierOrDestination: "",
+        note: "",
+        equipmentId: "",
+      });
       await fetchWarehouses();
       if (viewModal.open && viewModal.wh?._id === dispatchModal.warehouse._id) {
         await loadLogs(dispatchModal.warehouse._id);
       }
     } catch (err) {
-      showToast("error", err?.response?.data?.message || "Failed to dispatch inventory");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to dispatch inventory",
+      );
     }
   };
 
@@ -281,7 +359,10 @@ export default function WarehouseInventory() {
       setWarehouseLogs(normalizeLogs(response));
     } catch (err) {
       setWarehouseLogs([]);
-      showToast("error", err?.response?.data?.message || "Failed to load warehouse logs");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to load warehouse logs",
+      );
     } finally {
       setLogsLoading(false);
     }
@@ -300,7 +381,10 @@ export default function WarehouseInventory() {
           <button className="btn-add-warehouse" onClick={openCreate}>
             <FaPlus /> Add Warehouse
           </button>
-          <button className="btn-equipment-inventory" onClick={() => openReceive()}>
+          <button
+            className="btn-equipment-inventory"
+            onClick={() => openReceive()}
+          >
             <FaArrowDown /> Receive Inventory
           </button>
         </div>
@@ -324,7 +408,9 @@ export default function WarehouseInventory() {
         <div className="wh-stat-card">
           <FaBoxOpen className="wh-stat-icon purple" />
           <div>
-            <div className="wh-stat-value">{stats.totalItems.toLocaleString()}</div>
+            <div className="wh-stat-value">
+              {stats.totalItems.toLocaleString()}
+            </div>
             <div className="wh-stat-label">Total Load</div>
           </div>
         </div>
@@ -375,13 +461,27 @@ export default function WarehouseInventory() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center", color: "#6b7280", padding: "40px 0" }}>
+                <td
+                  colSpan={6}
+                  style={{
+                    textAlign: "center",
+                    color: "#6b7280",
+                    padding: "40px 0",
+                  }}
+                >
                   Loading warehouses...
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center", color: "#6b7280", padding: "40px 0" }}>
+                <td
+                  colSpan={6}
+                  style={{
+                    textAlign: "center",
+                    color: "#6b7280",
+                    padding: "40px 0",
+                  }}
+                >
                   No warehouses found
                 </td>
               </tr>
@@ -390,64 +490,122 @@ export default function WarehouseInventory() {
                 const percent = pct(wh.currentLoad, wh.capacity);
                 return (
                   <tr key={wh._id}>
-                    <td style={{ fontFamily: "monospace", color: "#60a5fa" }}>{wh._id}</td>
+                    <td style={{ fontFamily: "monospace", color: "#60a5fa" }}>
+                      {wh._id}
+                    </td>
                     <td>
                       <div style={{ fontWeight: 500 }}>{wh.name}</div>
-                      {wh.description && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{wh.description}</div>}
+                      {wh.description && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#6b7280",
+                            marginTop: 2,
+                          }}
+                        >
+                          {wh.description}
+                        </div>
+                      )}
                     </td>
-                    <td>{wh.location}</td>
+                    <td>{toDisplayText(wh.location, "-")}</td>
                     <td>
                       <div className="capacity-cell">
                         <div className="capacity-info">
                           <span className="capacity-text">
-                            {wh.currentLoad.toLocaleString()} / {wh.capacity.toLocaleString()} units
+                            {wh.currentLoad.toLocaleString()} /{" "}
+                            {wh.capacity.toLocaleString()} units
                           </span>
-                          <span className={`capacity-percent ${capClass(percent)}`}>{percent}%</span>
+                          <span
+                            className={`capacity-percent ${capClass(percent)}`}
+                          >
+                            {percent}%
+                          </span>
                         </div>
                         <div className="capacity-bar-container">
-                          <div className={`capacity-bar ${capClass(percent)}`} style={{ width: `${percent}%` }} />
+                          <div
+                            className={`capacity-bar ${capClass(percent)}`}
+                            style={{ width: `${percent}%` }}
+                          />
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span className={`badge ${statClass(wh.status)}`}>{wh.status}</span>
+                      <span className={`badge ${statClass(wh.status)}`}>
+                        {wh.status}
+                      </span>
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button className="btn-icon btn-view" onClick={() => openViewModal(wh)} title="View Inventory">
+                        <button
+                          className="btn-icon btn-view"
+                          onClick={() => openViewModal(wh)}
+                          title="View Inventory"
+                        >
                           <FaEye />
                         </button>
-                        <button className="btn-icon btn-edit" onClick={() => openEdit(wh)} title="Edit warehouse">
+                        <button
+                          className="btn-icon btn-edit"
+                          onClick={() => openEdit(wh)}
+                          title="Edit warehouse"
+                        >
                           <FaEdit />
                         </button>
-                        <button className="btn-icon btn-delete" onClick={() => setDeleteConfirm({ open: true, wh })} title="Delete warehouse">
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => setDeleteConfirm({ open: true, wh })}
+                          title="Delete warehouse"
+                        >
                           <FaTrash />
                         </button>
                       </div>
                     </td>
-                </tr>
-              );
-            }))}
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
-        <div className="table-footer-bar">Showing {filtered.length} of {warehouses.length} warehouses</div>
+        <div className="table-footer-bar">
+          Showing {filtered.length} of {warehouses.length} warehouses
+        </div>
       </div>
 
       {whModal.open && (
         <div className="modal-overlay" onClick={closeWhModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 480 }}
+          >
             <div className="modal-header">
               <div>
-                <h2>{whModal.mode === "create" ? "Add New Warehouse" : "Edit Warehouse"}</h2>
-                <p className="modal-subtitle">{whModal.mode === "create" ? "Create a warehouse in MongoDB" : "Update warehouse details"}</p>
+                <h2>
+                  {whModal.mode === "create"
+                    ? "Add New Warehouse"
+                    : "Edit Warehouse"}
+                </h2>
+                <p className="modal-subtitle">
+                  {whModal.mode === "create"
+                    ? "Create a warehouse in MongoDB"
+                    : "Update warehouse details"}
+                </p>
               </div>
-              <button className="modal-close" onClick={closeWhModal}><FaTimes /></button>
+              <button className="modal-close" onClick={closeWhModal}>
+                <FaTimes />
+              </button>
             </div>
             <form onSubmit={handleSaveWh}>
               <div className="modal-body">
                 <div className="form-group">
                   <label>Warehouse Name *</label>
-                  <input className="form-input" required value={whForm.name} onChange={(e) => setWhForm((p) => ({ ...p, name: e.target.value }))} />
+                  <input
+                    className="form-input"
+                    required
+                    value={whForm.name}
+                    onChange={(e) =>
+                      setWhForm((p) => ({ ...p, name: e.target.value }))
+                    }
+                  />
                 </div>
                 <div className="form-group">
                   <label>Location *</label>
@@ -455,26 +613,57 @@ export default function WarehouseInventory() {
                     className="form-input"
                     required
                     value={whForm.location}
-                    onChange={(e) => setWhForm((p) => ({ ...p, location: e.target.value }))}
+                    onChange={(e) =>
+                      setWhForm((p) => ({ ...p, location: e.target.value }))
+                    }
                   >
                     <option value="">-- Select Location --</option>
-                    {uniqueLocations.map(loc => (
-                      <option key={loc} value={loc}>{loc}</option>
+                    {uniqueLocations.map((loc) => (
+                      <option key={loc} value={loc}>
+                        {loc}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>Capacity (units) *</label>
-                  <input className="form-input" type="number" min="1" required value={whForm.capacity} onChange={(e) => setWhForm((p) => ({ ...p, capacity: e.target.value }))} />
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="1"
+                    required
+                    value={whForm.capacity}
+                    onChange={(e) =>
+                      setWhForm((p) => ({ ...p, capacity: e.target.value }))
+                    }
+                  />
                 </div>
                 <div className="form-group">
                   <label>Description</label>
-                  <textarea className="form-input" rows={3} value={whForm.description} onChange={(e) => setWhForm((p) => ({ ...p, description: e.target.value }))} />
+                  <textarea
+                    className="form-input"
+                    rows={3}
+                    value={whForm.description}
+                    onChange={(e) =>
+                      setWhForm((p) => ({ ...p, description: e.target.value }))
+                    }
+                  />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn-cancel" onClick={closeWhModal}>Cancel</button>
-                <button type="submit" className="btn-confirm"><FaCheckCircle /> {whModal.mode === "create" ? "Create Warehouse" : "Save Changes"}</button>
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={closeWhModal}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-confirm">
+                  <FaCheckCircle />{" "}
+                  {whModal.mode === "create"
+                    ? "Create Warehouse"
+                    : "Save Changes"}
+                </button>
               </div>
             </form>
           </div>
@@ -482,14 +671,22 @@ export default function WarehouseInventory() {
       )}
 
       {viewModal.open && viewModal.wh && (
-        <div className="modal-overlay" onClick={() => setViewModal({ open: false, wh: null })}>
+        <div
+          className="modal-overlay"
+          onClick={() => setViewModal({ open: false, wh: null })}
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
                 <h2>{viewModal.wh.name} — Inventory Logs</h2>
                 <p className="modal-subtitle">{viewModal.wh._id}</p>
               </div>
-              <button className="modal-close" onClick={() => setViewModal({ open: false, wh: null })}><FaTimes /></button>
+              <button
+                className="modal-close"
+                onClick={() => setViewModal({ open: false, wh: null })}
+              >
+                <FaTimes />
+              </button>
             </div>
             <div className="modal-body">
               {/* Capacity bar */}
@@ -499,30 +696,84 @@ export default function WarehouseInventory() {
                   <div style={{ marginBottom: 20 }}>
                     <div className="capacity-info" style={{ marginBottom: 6 }}>
                       <span className="capacity-text">
-                        {Number(viewModal.wh.currentLoad || 0).toLocaleString()} / {Number(viewModal.wh.capacity || 0).toLocaleString()} units used
+                        {Number(viewModal.wh.currentLoad || 0).toLocaleString()}{" "}
+                        / {Number(viewModal.wh.capacity || 0).toLocaleString()}{" "}
+                        units used
                       </span>
-                      <span className={`capacity-percent ${capClass(p)}`}>{p}%</span>
+                      <span className={`capacity-percent ${capClass(p)}`}>
+                        {p}%
+                      </span>
                     </div>
                     <div className="capacity-bar-container">
-                      <div className={`capacity-bar ${capClass(p)}`} style={{ width: `${p}%` }} />
+                      <div
+                        className={`capacity-bar ${capClass(p)}`}
+                        style={{ width: `${p}%` }}
+                      />
                     </div>
                   </div>
                 );
               })()}
 
-              <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
-                <select className="form-select" style={{ width: "auto" }} value={logFilters.type} onChange={(e) => setLogFilters(prev => ({ ...prev, type: e.target.value }))}>
+              <div
+                style={{ display: "flex", gap: "12px", marginBottom: "16px" }}
+              >
+                <select
+                  className="form-select"
+                  style={{ width: "auto" }}
+                  value={logFilters.type}
+                  onChange={(e) =>
+                    setLogFilters((prev) => ({ ...prev, type: e.target.value }))
+                  }
+                >
                   <option value="all">All Types</option>
                   <option value="RECEIVE">Receive</option>
                   <option value="DISPATCH">Dispatch</option>
                 </select>
-                <input className="form-input" type="number" placeholder="Min Qty" style={{ width: 100 }} value={logFilters.minQty} onChange={(e) => setLogFilters(prev => ({ ...prev, minQty: e.target.value }))} />
-                <input className="form-input" type="number" placeholder="Max Qty" style={{ width: 100 }} value={logFilters.maxQty} onChange={(e) => setLogFilters(prev => ({ ...prev, maxQty: e.target.value }))} />
+                <input
+                  className="form-input"
+                  type="number"
+                  placeholder="Min Qty"
+                  style={{ width: 100 }}
+                  value={logFilters.minQty}
+                  onChange={(e) =>
+                    setLogFilters((prev) => ({
+                      ...prev,
+                      minQty: e.target.value,
+                    }))
+                  }
+                />
+                <input
+                  className="form-input"
+                  type="number"
+                  placeholder="Max Qty"
+                  style={{ width: 100 }}
+                  value={logFilters.maxQty}
+                  onChange={(e) =>
+                    setLogFilters((prev) => ({
+                      ...prev,
+                      maxQty: e.target.value,
+                    }))
+                  }
+                />
               </div>
 
               {viewLogs.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "40px 0", color: "#6b7280" }}>
-                  <FaBoxOpen style={{ fontSize: 40, marginBottom: 12, opacity: 0.3, display: "block", margin: "0 auto 12px" }} />
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "40px 0",
+                    color: "#6b7280",
+                  }}
+                >
+                  <FaBoxOpen
+                    style={{
+                      fontSize: 40,
+                      marginBottom: 12,
+                      opacity: 0.3,
+                      display: "block",
+                      margin: "0 auto 12px",
+                    }}
+                  />
                   <p>No inventory logs for this warehouse yet.</p>
                 </div>
               ) : (
@@ -538,33 +789,74 @@ export default function WarehouseInventory() {
                     </tr>
                   </thead>
                   <tbody>
-                    {viewLogs.filter(item => {
-                      if (logFilters.type !== "all" && item.type !== logFilters.type) return false;
-                      if (logFilters.minQty && item.quantity < Number(logFilters.minQty)) return false;
-                      if (logFilters.maxQty && item.quantity > Number(logFilters.maxQty)) return false;
-                      return true;
-                    }).map((item) => (
-                      <tr key={item._id}>
-                        <td>{item.type}</td>
-                        <td><span style={{ fontWeight: 600, color: "#f9fafb" }}>{item.quantity}</span></td>
-                        <td style={{ color: "#9ca3af" }}>{item.supplierOrDestination}</td>
-                        <td style={{ color: "#9ca3af" }}>{new Date(item.actionDate).toLocaleString()}</td>
-                        <td style={{ color: "#9ca3af" }}>{item.userId?.email || "-"}</td>
-                        <td style={{ color: "#9ca3af" }}>{item.note || "-"}</td>
-                      </tr>
-                    ))}
+                    {viewLogs
+                      .filter((item) => {
+                        if (
+                          logFilters.type !== "all" &&
+                          item.type !== logFilters.type
+                        )
+                          return false;
+                        if (
+                          logFilters.minQty &&
+                          item.quantity < Number(logFilters.minQty)
+                        )
+                          return false;
+                        if (
+                          logFilters.maxQty &&
+                          item.quantity > Number(logFilters.maxQty)
+                        )
+                          return false;
+                        return true;
+                      })
+                      .map((item) => (
+                        <tr key={item._id}>
+                          <td>{item.type}</td>
+                          <td>
+                            <span style={{ fontWeight: 600, color: "#f9fafb" }}>
+                              {item.quantity}
+                            </span>
+                          </td>
+                          <td style={{ color: "#9ca3af" }}>
+                            {toDisplayText(item.supplierOrDestination, "-")}
+                          </td>
+                          <td style={{ color: "#9ca3af" }}>
+                            {new Date(item.actionDate).toLocaleString()}
+                          </td>
+                          <td style={{ color: "#9ca3af" }}>
+                            {item.userId?.email || "-"}
+                          </td>
+                          <td style={{ color: "#9ca3af" }}>
+                            {toDisplayText(item.note, "-")}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               )}
             </div>
             <div className="modal-footer">
-              <button className="btn-cancel" onClick={() => setViewModal({ open: false, wh: null })}>Close</button>
-              <button className="btn-equipment-inventory" onClick={() => openReceive(viewModal.wh._id)}><FaArrowDown /> Receive</button>
+              <button
+                className="btn-cancel"
+                onClick={() => setViewModal({ open: false, wh: null })}
+              >
+                Close
+              </button>
+              <button
+                className="btn-equipment-inventory"
+                onClick={() => openReceive(viewModal.wh._id)}
+              >
+                <FaArrowDown /> Receive
+              </button>
               <button
                 className="btn-dispatch-confirm"
                 onClick={() => {
                   setDispatchModal({ open: true, warehouse: viewModal.wh });
-                  setDispatchForm({ quantity: "", supplierOrDestination: "", note: "", equipmentId: "" });
+                  setDispatchForm({
+                    quantity: "",
+                    supplierOrDestination: "",
+                    note: "",
+                    equipmentId: "",
+                  });
                 }}
               >
                 <FaArrowUp /> Dispatch
@@ -577,13 +869,23 @@ export default function WarehouseInventory() {
       {/* ══════════ Modal: Receive Inventory ══════════ */}
       {receiveModal && (
         <div className="modal-overlay" onClick={() => setReceiveModal(false)}>
-          <div className="modal-content receive-inventory-modal" onClick={e => e.stopPropagation()}>
+          <div
+            className="modal-content receive-inventory-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <div>
                 <h2>Receive Inventory</h2>
-                <p className="modal-subtitle">Add items received from supplier.</p>
+                <p className="modal-subtitle">
+                  Add items received from supplier.
+                </p>
               </div>
-              <button className="modal-close" onClick={() => setReceiveModal(false)}><FaTimes /></button>
+              <button
+                className="modal-close"
+                onClick={() => setReceiveModal(false)}
+              >
+                <FaTimes />
+              </button>
             </div>
             <form onSubmit={handleReceive}>
               <div className="modal-body">
@@ -594,11 +896,19 @@ export default function WarehouseInventory() {
                 )}
                 <div className="form-group">
                   <label>Warehouse *</label>
-                  <select className="form-select" required
+                  <select
+                    className="form-select"
+                    required
                     value={receiveForm.warehouseId}
-                    onChange={e => setReceiveForm(p => ({ ...p, warehouseId: e.target.value }))}>
+                    onChange={(e) =>
+                      setReceiveForm((p) => ({
+                        ...p,
+                        warehouseId: e.target.value,
+                      }))
+                    }
+                  >
                     <option value="">Select warehouse</option>
-                    {warehouses.map(w => (
+                    {warehouses.map((w) => (
                       <option key={w._id} value={w._id}>
                         {w.name} ({pct(w.currentLoad, w.capacity)}% full)
                       </option>
@@ -607,46 +917,99 @@ export default function WarehouseInventory() {
                 </div>
                 <div className="form-group">
                   <label>Equipment</label>
-                  <select className="form-select"
+                  <select
+                    className="form-select"
                     value={receiveForm.equipmentId}
-                    onChange={e => setReceiveForm(p => ({ ...p, equipmentId: e.target.value }))}>
+                    onChange={(e) =>
+                      setReceiveForm((p) => ({
+                        ...p,
+                        equipmentId: e.target.value,
+                      }))
+                    }
+                  >
                     <option value="">Select an Equipment (Optional)</option>
-                    {equipments.map(eq => (
+                    {equipments.map((eq) => (
                       <option key={eq._id || eq.id} value={eq._id || eq.id}>
                         {eq.name} ({eq.serial || eq.type})
                       </option>
                     ))}
                   </select>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 16,
+                  }}
+                >
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Quantity *</label>
-                    <input className="form-input" type="number" min="1" placeholder="0" required
+                    <input
+                      className="form-input"
+                      type="number"
+                      min="1"
+                      placeholder="0"
+                      required
                       value={receiveForm.quantity}
-                      onChange={e => setReceiveForm(p => ({ ...p, quantity: e.target.value }))} />
+                      onChange={(e) =>
+                        setReceiveForm((p) => ({
+                          ...p,
+                          quantity: e.target.value,
+                        }))
+                      }
+                    />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Date</label>
-                    <input className="form-input" type="date" required
+                    <input
+                      className="form-input"
+                      type="date"
+                      required
                       value={receiveForm.actionDate}
-                      onChange={e => setReceiveForm(p => ({ ...p, actionDate: e.target.value }))} />
+                      onChange={(e) =>
+                        setReceiveForm((p) => ({
+                          ...p,
+                          actionDate: e.target.value,
+                        }))
+                      }
+                    />
                   </div>
                 </div>
                 <div className="form-group">
                   <label>Supplier / Source *</label>
-                  <input className="form-input" placeholder="Enter supplier name" required
+                  <input
+                    className="form-input"
+                    placeholder="Enter supplier name"
+                    required
                     value={receiveForm.supplierOrDestination}
-                    onChange={e => setReceiveForm(p => ({ ...p, supplierOrDestination: e.target.value }))} />
+                    onChange={(e) =>
+                      setReceiveForm((p) => ({
+                        ...p,
+                        supplierOrDestination: e.target.value,
+                      }))
+                    }
+                  />
                 </div>
                 <div className="form-group">
                   <label>Note</label>
-                  <textarea className="form-input" rows={2}
+                  <textarea
+                    className="form-input"
+                    rows={2}
                     value={receiveForm.note}
-                    onChange={e => setReceiveForm(p => ({ ...p, note: e.target.value }))} />
+                    onChange={(e) =>
+                      setReceiveForm((p) => ({ ...p, note: e.target.value }))
+                    }
+                  />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn-cancel" onClick={() => setReceiveModal(false)}>Cancel</button>
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setReceiveModal(false)}
+                >
+                  Cancel
+                </button>
                 <button type="submit" className="btn-confirm">
                   <FaCheckCircle /> Confirm Receipt
                 </button>
@@ -658,29 +1021,70 @@ export default function WarehouseInventory() {
 
       {/* ══════════ Modal: Dispatch ══════════ */}
       {dispatchModal.open && dispatchModal.warehouse && (
-        <div className="modal-overlay" onClick={() => setDispatchModal({ open: false, warehouse: null })}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+        <div
+          className="modal-overlay"
+          onClick={() => setDispatchModal({ open: false, warehouse: null })}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 400 }}
+          >
             <div className="modal-header">
               <div>
                 <h2>Dispatch Inventory</h2>
-                <p className="modal-subtitle">Warehouse: {dispatchModal.warehouse.name}</p>
+                <p className="modal-subtitle">
+                  Warehouse: {dispatchModal.warehouse.name}
+                </p>
               </div>
-              <button className="modal-close" onClick={() => setDispatchModal({ open: false, warehouse: null })}><FaTimes /></button>
+              <button
+                className="modal-close"
+                onClick={() =>
+                  setDispatchModal({ open: false, warehouse: null })
+                }
+              >
+                <FaTimes />
+              </button>
             </div>
             <form onSubmit={handleDispatch}>
               <div className="modal-body">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 16,
+                  }}
+                >
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Quantity *</label>
-                    <input className="form-input" type="number" min="1" required value={dispatchForm.quantity} onChange={(e) => setDispatchForm((p) => ({ ...p, quantity: e.target.value }))} />
+                    <input
+                      className="form-input"
+                      type="number"
+                      min="1"
+                      required
+                      value={dispatchForm.quantity}
+                      onChange={(e) =>
+                        setDispatchForm((p) => ({
+                          ...p,
+                          quantity: e.target.value,
+                        }))
+                      }
+                    />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Equipment ID</label>
-                    <select className="form-select"
+                    <select
+                      className="form-select"
                       value={dispatchForm.equipmentId}
-                      onChange={(e) => setDispatchForm((p) => ({ ...p, equipmentId: e.target.value }))}>
+                      onChange={(e) =>
+                        setDispatchForm((p) => ({
+                          ...p,
+                          equipmentId: e.target.value,
+                        }))
+                      }
+                    >
                       <option value="">Select Equipment</option>
-                      {equipments.map(eq => (
+                      {equipments.map((eq) => (
                         <option key={eq._id || eq.id} value={eq._id || eq.id}>
                           {eq.name} ({eq.serial || eq.type})
                         </option>
@@ -691,17 +1095,44 @@ export default function WarehouseInventory() {
 
                 <div className="form-group" style={{ marginTop: 16 }}>
                   <label>Destination *</label>
-                  <input className="form-input" required value={dispatchForm.supplierOrDestination} onChange={(e) => setDispatchForm((p) => ({ ...p, supplierOrDestination: e.target.value }))} />
+                  <input
+                    className="form-input"
+                    required
+                    value={dispatchForm.supplierOrDestination}
+                    onChange={(e) =>
+                      setDispatchForm((p) => ({
+                        ...p,
+                        supplierOrDestination: e.target.value,
+                      }))
+                    }
+                  />
                 </div>
-                
+
                 <div className="form-group">
                   <label>Note</label>
-                  <textarea className="form-input" rows={2} value={dispatchForm.note} onChange={(e) => setDispatchForm((p) => ({ ...p, note: e.target.value }))} />
+                  <textarea
+                    className="form-input"
+                    rows={2}
+                    value={dispatchForm.note}
+                    onChange={(e) =>
+                      setDispatchForm((p) => ({ ...p, note: e.target.value }))
+                    }
+                  />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn-cancel" onClick={() => setDispatchModal({ open: false, warehouse: null })}>Cancel</button>
-                <button type="submit" className="btn-dispatch-confirm"><FaArrowUp /> Dispatch</button>
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() =>
+                    setDispatchModal({ open: false, warehouse: null })
+                  }
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-dispatch-confirm">
+                  <FaArrowUp /> Dispatch
+                </button>
               </div>
             </form>
           </div>
@@ -709,28 +1140,53 @@ export default function WarehouseInventory() {
       )}
 
       {deleteConfirm.open && deleteConfirm.wh && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirm({ open: false, wh: null })}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+        <div
+          className="modal-overlay"
+          onClick={() => setDeleteConfirm({ open: false, wh: null })}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 420 }}
+          >
             <div className="modal-header">
               <div>
                 <h2 style={{ color: "#ef4444" }}>Delete Warehouse</h2>
                 <p className="modal-subtitle">This action cannot be undone.</p>
               </div>
-              <button className="modal-close" onClick={() => setDeleteConfirm({ open: false, wh: null })}><FaTimes /></button>
+              <button
+                className="modal-close"
+                onClick={() => setDeleteConfirm({ open: false, wh: null })}
+              >
+                <FaTimes />
+              </button>
             </div>
             <div className="modal-body">
               <p style={{ color: "#d1d5db", fontSize: 14, lineHeight: 1.7 }}>
-                Are you sure you want to delete <strong style={{ color: "#f9fafb" }}>{deleteConfirm.wh.name}</strong>?
+                Are you sure you want to delete{" "}
+                <strong style={{ color: "#f9fafb" }}>
+                  {deleteConfirm.wh.name}
+                </strong>
+                ?
               </p>
               {deleteConfirm.wh.currentLoad > 0 && (
                 <div className="cap-alert" style={{ marginTop: 12 }}>
                   <FaExclamationTriangle />
-                  This warehouse has existing load. Delete will be forced and remaining inventory will be auto-cleared with an audit log.
+                  This warehouse has existing load. Delete will be forced and
+                  remaining inventory will be auto-cleared with an audit log.
                 </div>
               )}
             </div>
-            <div className="modal-footer" style={{ justifyContent: "flex-end" }}>
-              <button className="btn-cancel" onClick={() => setDeleteConfirm({ open: false, wh: null })}>Cancel</button>
+            <div
+              className="modal-footer"
+              style={{ justifyContent: "flex-end" }}
+            >
+              <button
+                className="btn-cancel"
+                onClick={() => setDeleteConfirm({ open: false, wh: null })}
+              >
+                Cancel
+              </button>
               <button className="btn-delete-confirm" onClick={confirmDelete}>
                 <FaTrash /> Delete Warehouse
               </button>
@@ -741,4 +1197,3 @@ export default function WarehouseInventory() {
     </div>
   );
 }
- 

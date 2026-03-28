@@ -58,14 +58,28 @@ export default function EquipmentControl() {
     needsCalibration: false,
   });
 
-  const [stats, setStats] = useState({ total: 0, active: 0, maintenance: 0, inactive: 0 });
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    maintenance: 0,
+    inactive: 0,
+  });
 
   const fetchStats = useCallback(async () => {
     try {
       const response = await adminEquipmentApi.getStats();
-      if (response?.data) {
-        setStats(response.data);
-      }
+      const payload = response?.data?.data || response?.data || {};
+      setStats({
+        total: Number(payload.total ?? payload.totalEquipment ?? 0),
+        active: Number(payload.active ?? payload.operational ?? 0),
+        maintenance: Number(payload.maintenance ?? 0),
+        inactive: Number(
+          payload.inactive ??
+            payload.faultyOrInactive ??
+            payload.outOfService ??
+            0,
+        ),
+      });
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
@@ -199,8 +213,14 @@ export default function EquipmentControl() {
       handleCancel();
       fetchEquipmentData(true);
     } catch (error) {
-      console.error(`Error ${isEditing ? "updating" : "creating"} equipment:`, error);
-      toast.error(error?.response?.data?.message || `Failed to ${isEditing ? "update" : "create"} equipment`);
+      console.error(
+        `Error ${isEditing ? "updating" : "creating"} equipment:`,
+        error,
+      );
+      toast.error(
+        error?.response?.data?.message ||
+          `Failed to ${isEditing ? "update" : "create"} equipment`,
+      );
     }
   };
 
@@ -225,7 +245,7 @@ export default function EquipmentControl() {
   const handleEditClick = (item) => {
     setIsEditing(true);
     setEditId(item.id || item._id);
-    
+
     setFormData({
       equipmentName: item.name || "",
       equipmentType: item.type || "",
@@ -233,12 +253,21 @@ export default function EquipmentControl() {
       model: item.model || "",
       manufacturer: item.manufacturer || "",
       location: item.location || "",
-      installDate: item.installationDate ? item.installationDate.substring(0, 10) : item.purchaseDate ? item.purchaseDate.substring(0, 10) : item.createdAt ? item.createdAt.substring(0, 10) : "",       
+      installDate: item.installationDate
+        ? item.installationDate.substring(0, 10)
+        : item.purchaseDate
+          ? item.purchaseDate.substring(0, 10)
+          : item.createdAt
+            ? item.createdAt.substring(0, 10)
+            : "",
       currentStatus: item.status || "",
-      technicalSpec: item.technicalSpecs?.specifications?.map(s => `${s.parameter}: ${s.value} ${s.unit}`).join('\n') || "",
+      technicalSpec:
+        item.technicalSpecs?.specifications
+          ?.map((s) => `${s.parameter}: ${s.value} ${s.unit}`)
+          .join("\n") || "",
       needsCalibration: false,
     });
-    
+
     setShowModal(true);
   };
 
@@ -257,7 +286,9 @@ export default function EquipmentControl() {
       fetchEquipmentData(true);
     } catch (error) {
       console.error("Error deleting equipment:", error);
-      toast.error(error?.response?.data?.message || "Failed to delete equipment");
+      toast.error(
+        error?.response?.data?.message || "Failed to delete equipment",
+      );
     }
   };
 
@@ -398,7 +429,9 @@ export default function EquipmentControl() {
                 <option value="maintenance">Maintenance</option>
                 <option value="repair">Repair</option>
                 <option value="inspection">Inspection</option>
-                <option value="out-of-service">Out of Service / Inactive</option>
+                <option value="out-of-service">
+                  Out of Service / Inactive
+                </option>
               </select>
             </div>
 
@@ -650,7 +683,9 @@ export default function EquipmentControl() {
               <div>
                 <h2>{isEditing ? "Edit Equipment" : "Add New Equipment"}</h2>
                 <p className="modal-subtitle">
-                  {isEditing ? "Update existing equipment details" : "Add a new equipment to the tracking system"}
+                  {isEditing
+                    ? "Update existing equipment details"
+                    : "Add a new equipment to the tracking system"}
                 </p>
               </div>
               <button className="modal-close" onClick={handleCancel}>
@@ -845,7 +880,8 @@ export default function EquipmentControl() {
                   Cancel
                 </button>
                 <button type="submit" className="btn-submit">
-                  {isEditing ? < FaEdit /> : <FaPlus />} {isEditing ? "Update Equipment" : "Save Equipment"}
+                  {isEditing ? <FaEdit /> : <FaPlus />}{" "}
+                  {isEditing ? "Update Equipment" : "Save Equipment"}
                 </button>
               </div>
             </form>

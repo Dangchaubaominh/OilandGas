@@ -3,7 +3,7 @@ import axiosClient from "./AxiosClient";
 
 const adminInstrumentApi = {
   getStats() {
-    return axiosClient.get("/admin/instruments/stats");
+    return axiosClient.get("/engineer/instruments/stats");
   },
 
   // 1. Lấy danh sách tất cả instrument (admin)

@@ -35,7 +35,7 @@ export default function InstrumentManagement() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const role = user?.role?.toLowerCase() || "";
-  
+
   // --- STATES & HANDLERS ---
   const [instruments, setInstruments] = useState([]);
   const [engineers, setEngineers] = useState([]);
@@ -87,14 +87,23 @@ export default function InstrumentManagement() {
     status: "operational",
   });
 
-  const [stats, setStats] = useState({ total: 0, active: 0, maintenance: 0, faulty: 0 });
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    maintenance: 0,
+    faulty: 0,
+  });
 
   const fetchStats = useCallback(async () => {
     try {
       const response = await adminInstrumentApi.getStats();
-      if (response?.data) {
-        setStats(response.data);
-      }
+      const payload = response?.data?.data || response?.data || {};
+      setStats({
+        total: Number(payload.total ?? payload.totalInstruments ?? 0),
+        active: Number(payload.active ?? payload.operational ?? 0),
+        maintenance: Number(payload.maintenance ?? 0),
+        faulty: Number(payload.faulty ?? payload.faultyOrInactive ?? 0),
+      });
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
@@ -116,11 +125,38 @@ export default function InstrumentManagement() {
   };
 
   const typeManufacturerMap = {
-    pressure: ["Emerson", "Rosemount", "WIKA", "Yokogawa", "Endress+Hauser", "Siemens"],
-    temperature: ["Endress+Hauser", "WIKA", "Emerson", "ABB", "Yokogawa", "Honeywell"],
-    flow: ["Micro Motion", "Krohne", "Endress+Hauser", "ABB", "Siemens", "Yokogawa"],
+    pressure: [
+      "Emerson",
+      "Rosemount",
+      "WIKA",
+      "Yokogawa",
+      "Endress+Hauser",
+      "Siemens",
+    ],
+    temperature: [
+      "Endress+Hauser",
+      "WIKA",
+      "Emerson",
+      "ABB",
+      "Yokogawa",
+      "Honeywell",
+    ],
+    flow: [
+      "Micro Motion",
+      "Krohne",
+      "Endress+Hauser",
+      "ABB",
+      "Siemens",
+      "Yokogawa",
+    ],
     level: ["Vega", "Endress+Hauser", "Emerson", "Siemens", "Magnetrol"],
-    analytical: ["Hach", "Mettler Toledo", "Yokogawa", "Endress+Hauser", "Rosemount"],
+    analytical: [
+      "Hach",
+      "Mettler Toledo",
+      "Yokogawa",
+      "Endress+Hauser",
+      "Rosemount",
+    ],
     safety: ["Dräger", "MSA Safety", "Crowcon", "Honeywell", "Det-Tronics"],
     control: ["Fisher", "Masoneilan", "Flowserve", "Samson", "Metso"],
     monitoring: ["Rockwell Automation", "Siemens", "ABB", "Schneider Electric"],
@@ -128,21 +164,22 @@ export default function InstrumentManagement() {
   };
 
   const currentSuggestedUnits = typeUnitMap[formData.instrumentType] || [];
-  const currentSuggestedManufacturers = typeManufacturerMap[formData.instrumentType] || [];
+  const currentSuggestedManufacturers =
+    typeManufacturerMap[formData.instrumentType] || [];
 
   // Helper to find next logical number/ID from existing strings (e.g. RA-001 -> RA-002)
   const getNextSequence = (existingStrings, prefixDefault) => {
     let maxNum = 0;
     let foundStr = "";
 
-    existingStrings.forEach(str => {
+    existingStrings.forEach((str) => {
       if (!str) return;
       const match = str.match(/(.*?)(\d+)$/);
       if (match) {
         const num = parseInt(match[2], 10);
         if (num > maxNum) {
           maxNum = num;
-          foundStr = str; 
+          foundStr = str;
         }
       }
     });
@@ -151,7 +188,7 @@ export default function InstrumentManagement() {
       const match = foundStr.match(/(.*?)(\d+)$/);
       const prefix = match[1];
       const digitsLen = match[2].length;
-      return `${prefix}${String(maxNum + 1).padStart(digitsLen, '0')}`;
+      return `${prefix}${String(maxNum + 1).padStart(digitsLen, "0")}`;
     }
     return `${prefixDefault}001`;
   };
@@ -162,7 +199,11 @@ export default function InstrumentManagement() {
       .filter((i) => i.manufacturer === formData.manufacturer)
       .map((i) => i.model)
       .filter(Boolean);
-    const initials = formData.manufacturer.split(' ').map(w => w[0]).join('').toUpperCase();
+    const initials = formData.manufacturer
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
     const nextItem = getNextSequence(existing, `${initials}-M-`);
     const unique = Array.from(new Set(existing));
     if (!unique.includes(nextItem)) unique.unshift(nextItem);
@@ -175,7 +216,11 @@ export default function InstrumentManagement() {
       .filter((i) => i.manufacturer === formData.manufacturer)
       .map((i) => i.serial || i.serialNumber)
       .filter(Boolean);
-    const initials = formData.manufacturer.split(' ').map(w => w[0]).join('').toUpperCase();
+    const initials = formData.manufacturer
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
     const nextItem = getNextSequence(existing, `${initials}-SN-`);
     const unique = Array.from(new Set(existing));
     if (!unique.includes(nextItem)) unique.unshift(nextItem);
@@ -183,26 +228,26 @@ export default function InstrumentManagement() {
   }, [formData.manufacturer, instruments]);
 
   const existingLocations = useMemo(() => {
-    const locs = instruments.map(i => i.location).filter(Boolean);
+    const locs = instruments.map((i) => i.location).filter(Boolean);
     return Array.from(new Set(locs));
   }, [instruments]);
 
-    // --- FETCH ENGINEERS ---
-    const fetchEngineers = useCallback(async () => {
-      try {
-        const res = await userApi.getActiveUsers({ role: "engineer" });
-        const list = res?.data?.data?.users || res?.data?.users ||
-res?.data || [];
-        setEngineers(Array.isArray(list) ? list : []);
-      } catch (error) {
-        // Silent fail or log
-        console.error("Failed to fetch engineers:", error);
-      }
-    }, []);
+  // --- FETCH ENGINEERS ---
+  const fetchEngineers = useCallback(async () => {
+    try {
+      const res = await userApi.getActiveUsers({ role: "engineer" });
+      const list =
+        res?.data?.data?.users || res?.data?.users || res?.data || [];
+      setEngineers(Array.isArray(list) ? list : []);
+    } catch (error) {
+      // Silent fail or log
+      console.error("Failed to fetch engineers:", error);
+    }
+  }, []);
 
-    useEffect(() => {
-      fetchEngineers();
-    }, [fetchEngineers]);
+  useEffect(() => {
+    fetchEngineers();
+  }, [fetchEngineers]);
 
   // --- FETCH DATA Tá»ª API ---
   const fetchInstruments = useCallback(
@@ -305,14 +350,17 @@ res?.data || [];
     const { name, value } = e.target;
     setFormData((prev) => {
       const newData = { ...prev, [name]: value };
-      
+
       // Reset unit when type changes and current unit is not in suggested list
       if (name === "instrumentType") {
         const suggestedUnits = typeUnitMap[value] || [];
-        if (suggestedUnits.length > 0 && !suggestedUnits.includes(newData.unit)) {
+        if (
+          suggestedUnits.length > 0 &&
+          !suggestedUnits.includes(newData.unit)
+        ) {
           newData.unit = suggestedUnits[0]; // Auto-select first suitable unit
         } else if (!value) {
-            newData.unit = "";
+          newData.unit = "";
         }
       }
       return newData;
@@ -343,17 +391,20 @@ res?.data || [];
         },
         installationDate: formData.installationDate || undefined,
         lastCalibrationDate: formData.lastCalibrationDate || undefined,
-        calibrationInterval: formData.calibrationInterval 
-          ? parseInt(formData.calibrationInterval, 10) 
+        calibrationInterval: formData.calibrationInterval
+          ? parseInt(formData.calibrationInterval, 10)
           : undefined,
-        operationalParameters: editTarget?.operationalParameters 
+        operationalParameters: editTarget?.operationalParameters
           ? { ...editTarget.operationalParameters }
-          : undefined
+          : undefined,
       };
 
       if (editTarget) {
         // Update existing instrument
-        await adminInstrumentApi.update(editTarget._id || editTarget.id, instrumentData);
+        await adminInstrumentApi.update(
+          editTarget._id || editTarget.id,
+          instrumentData,
+        );
         showToast("success", "Instrument updated successfully!");
       } else {
         // Create new instrument
@@ -364,15 +415,20 @@ res?.data || [];
       handleCancel();
       fetchInstruments(true);
     } catch (err) {
-      let errorMessage = err.response?.data?.message || err.message || "Failed to save instrument";
-      
+      let errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to save instrument";
+
       // Extract detailed validation errors if they exist from the backend
       if (err.response?.data?.error && Array.isArray(err.response.data.error)) {
-        errorMessage = err.response.data.error.map(e => `${e.field}: ${e.message}`).join(" | ");
+        errorMessage = err.response.data.error
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(" | ");
       } else if (err.response?.data?.error) {
         errorMessage = `${errorMessage} - ${err.response.data.error}`;
       }
-      
+
       showToast("error", errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -409,45 +465,57 @@ res?.data || [];
     let rangeMax = "";
     let unit = "";
     if (instrument.specifications?.range) {
-        const rangeText = instrument.specifications.range;
-        // Match patterns like "0-100", "-50 to 500", "0.5 - 1.5", etc.
-        const match = rangeText.match(/^([-\d.]+)\s*(?:-|to)\s*([-\d.]+)\s*(.*)$/i);
-        if (match) {
-          rangeMin = match[1];
-          rangeMax = match[2];
-          unit = match[3] || "";
-        } else {
-          // Fallback simple parsing
-          const parts = rangeText.split(" ");
-          if (parts.length >= 1) {
-            const minMax = parts[0].split("-");
-            if (minMax.length === 2 && minMax[0] !== "") {
-              rangeMin = minMax[0];
-              rangeMax = minMax[1];
-            } else if (minMax.length === 3 && parts[0].startsWith("-")) {
-              // handles "-50-500" -> ["", "50", "500"]
-              rangeMin = "-" + minMax[1];
-              rangeMax = minMax[2];
-            }
-          }
-          if (parts.length >= 2 && !unit) {
-            unit = parts.slice(1).join(" ");
+      const rangeText = instrument.specifications.range;
+      // Match patterns like "0-100", "-50 to 500", "0.5 - 1.5", etc.
+      const match = rangeText.match(
+        /^([-\d.]+)\s*(?:-|to)\s*([-\d.]+)\s*(.*)$/i,
+      );
+      if (match) {
+        rangeMin = match[1];
+        rangeMax = match[2];
+        unit = match[3] || "";
+      } else {
+        // Fallback simple parsing
+        const parts = rangeText.split(" ");
+        if (parts.length >= 1) {
+          const minMax = parts[0].split("-");
+          if (minMax.length === 2 && minMax[0] !== "") {
+            rangeMin = minMax[0];
+            rangeMax = minMax[1];
+          } else if (minMax.length === 3 && parts[0].startsWith("-")) {
+            // handles "-50-500" -> ["", "50", "500"]
+            rangeMin = "-" + minMax[1];
+            rangeMax = minMax[2];
           }
         }
+        if (parts.length >= 2 && !unit) {
+          unit = parts.slice(1).join(" ");
+        }
+      }
     }
 
-    const lastCalib = instrument.operationalParameters?.calibrationDate || instrument.lastCalibrationDate;
+    const lastCalib =
+      instrument.operationalParameters?.calibrationDate ||
+      instrument.lastCalibrationDate;
 
     // Calculate interval if possible (in months)
     let calcInterval = instrument.calibrationInterval || "";
-    if (!calcInterval && instrument.operationalParameters?.calibrationDate && instrument.operationalParameters?.nextCalibrationDate) {
+    if (
+      !calcInterval &&
+      instrument.operationalParameters?.calibrationDate &&
+      instrument.operationalParameters?.nextCalibrationDate
+    ) {
       const d1 = new Date(instrument.operationalParameters.calibrationDate);
       const d2 = new Date(instrument.operationalParameters.nextCalibrationDate);
-      let months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
-      
+      let months =
+        (d2.getFullYear() - d1.getFullYear()) * 12 +
+        (d2.getMonth() - d1.getMonth());
+
       // Fallback for previous bug where interval was saved as days instead of months
       if (months === 0 && d2.getTime() > d1.getTime()) {
-        const diffDays = Math.round((d2.getTime() - d1.getTime()) / (1000 * 3600 * 24));
+        const diffDays = Math.round(
+          (d2.getTime() - d1.getTime()) / (1000 * 3600 * 24),
+        );
         if (diffDays > 0 && diffDays <= 120) months = diffDays;
       }
       calcInterval = months ? String(months) : "";
@@ -464,9 +532,7 @@ res?.data || [];
       installationDate: instrument.installationDate
         ? instrument.installationDate.split("T")[0]
         : "",
-      lastCalibrationDate: lastCalib
-        ? lastCalib.split("T")[0]
-        : "",
+      lastCalibrationDate: lastCalib ? lastCalib.split("T")[0] : "",
       calibrationInterval: calcInterval,
       serialNumber: instrument.serial || instrument.serialNumber || "",
       rangeMin: rangeMin,
@@ -516,10 +582,7 @@ res?.data || [];
     }
     const targetId = assignTarget._id || assignTarget.id;
     try {
-      await adminInstrumentApi.assignEngineer(
-        targetId,
-        selectedEngineer,
-      );
+      await adminInstrumentApi.assignEngineer(targetId, selectedEngineer);
       showToast("success", `Engineer assigned to ${assignTarget.name}`);
       setShowAssignModal(false);
       fetchInstruments(true);
@@ -548,10 +611,7 @@ res?.data || [];
     }
     const targetId = maintenanceTarget._id || maintenanceTarget.id;
     try {
-      await instrumentApi.scheduleMaintenance(
-        targetId,
-        maintenanceForm,
-      );
+      await instrumentApi.scheduleMaintenance(targetId, maintenanceForm);
       showToast(
         "success",
         `Maintenance scheduled for ${maintenanceTarget.name}`,
@@ -701,45 +761,45 @@ res?.data || [];
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="">All Statuses</option>
-                  <option value="operational">Operational</option>
-                  <option value="calibration">Calibration</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="faulty">Faulty</option>
-                  <option value="out-of-service">Out of Service</option>
-                </select>
-              </div>
-
-              <select
-                className="filter-select"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              >
-                <option value="">All Types</option>
-                <option value="pressure">Pressure (Áp suất)</option>
-                <option value="temperature">Temperature (Nhiệt độ)</option>
-                <option value="flow">Flow (Lưu lượng)</option>
-                <option value="level">Level (Mức)</option>
-                <option value="analytical">Analytical (Phân tích)</option>
-                <option value="safety">Safety (An toàn)</option>
-                <option value="control">Control (Điều khiển)</option>
-                <option value="monitoring">Monitoring (Giám sát)</option>
-                <option value="other">Other (Khác)</option>
+                <option value="operational">Operational</option>
+                <option value="calibration">Calibration</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="faulty">Faulty</option>
+                <option value="out-of-service">Out of Service</option>
               </select>
-
-              {(searchQuery || statusFilter || typeFilter) && (
-                <button
-                  className="btn-clear-filters"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setStatusFilter("");
-                    setTypeFilter("");
-                  }}
-                  title="Clear all filters"
-                >
-                  <FaTimes />
-                </button>
-              )}
             </div>
+
+            <select
+              className="filter-select"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="">All Types</option>
+              <option value="pressure">Pressure (Áp suất)</option>
+              <option value="temperature">Temperature (Nhiệt độ)</option>
+              <option value="flow">Flow (Lưu lượng)</option>
+              <option value="level">Level (Mức)</option>
+              <option value="analytical">Analytical (Phân tích)</option>
+              <option value="safety">Safety (An toàn)</option>
+              <option value="control">Control (Điều khiển)</option>
+              <option value="monitoring">Monitoring (Giám sát)</option>
+              <option value="other">Other (Khác)</option>
+            </select>
+
+            {(searchQuery || statusFilter || typeFilter) && (
+              <button
+                className="btn-clear-filters"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("");
+                  setTypeFilter("");
+                }}
+                title="Clear all filters"
+              >
+                <FaTimes />
+              </button>
+            )}
+          </div>
         </div>
 
         {hasActiveFilters && (
@@ -812,13 +872,15 @@ res?.data || [];
                           >
                             Clear Filters
                           </button>
-                        ) : role === "admin" && (
-                          <button
-                            className="btn-create"
-                            onClick={() => setShowModal(true)}
-                          >
-                            <FaPlus /> Add Instrument
-                          </button>
+                        ) : (
+                          role === "admin" && (
+                            <button
+                              className="btn-create"
+                              onClick={() => setShowModal(true)}
+                            >
+                              <FaPlus /> Add Instrument
+                            </button>
+                          )
                         )}
                       </div>
                     </td>
@@ -916,12 +978,17 @@ res?.data || [];
                           <button
                             className="btn-icon"
                             title="Schedule Maintenance"
-                            onClick={() => handleScheduleMaintenance(instrument)}
+                            onClick={() =>
+                              handleScheduleMaintenance(instrument)
+                            }
                             style={{
-                              display:
-                                ["admin", "supervisor", "engineer"].includes(role)
-                                  ? "flex"
-                                  : "none",
+                              display: [
+                                "admin",
+                                "supervisor",
+                                "engineer",
+                              ].includes(role)
+                                ? "flex"
+                                : "none",
                               color: "#FF9800",
                             }}
                           >
@@ -929,20 +996,22 @@ res?.data || [];
                           </button>
                           <button
                             className="btn-icon btn-view"
-                              title="View Details"
-                              onClick={() =>
-                                navigate(
-                                  `/app/instrument/${instrument._id || instrument.id || instrument.tagId}`
-                                )
-                              }
-                            >
-                              <FaEye />
+                            title="View Details"
+                            onClick={() =>
+                              navigate(
+                                `/app/instrument/${instrument._id || instrument.id || instrument.tagId}`,
+                              )
+                            }
+                          >
+                            <FaEye />
                           </button>
                           <button
                             className="btn-icon btn-edit"
                             title="Edit"
                             onClick={() => handleEditClick(instrument)}
-                            style={{ display: role === "admin" ? "flex" : "none" }}
+                            style={{
+                              display: role === "admin" ? "flex" : "none",
+                            }}
                           >
                             <FaEdit />
                           </button>
@@ -950,7 +1019,9 @@ res?.data || [];
                             className="btn-icon btn-delete"
                             title="Delete"
                             onClick={() => handleDeleteClick(instrument)}
-                            style={{ display: role === "admin" ? "flex" : "none" }}
+                            style={{
+                              display: role === "admin" ? "flex" : "none",
+                            }}
                           >
                             <FaTrash />
                           </button>
@@ -1058,9 +1129,7 @@ res?.data || [];
                     </div>
 
                     <div className="form-group">
-                      <label>
-                        Instrument Code
-                      </label>
+                      <label>Instrument Code</label>
                       <input
                         type="text"
                         name="instrumentCode"
@@ -1084,19 +1153,27 @@ res?.data || [];
                       >
                         <option value="">-- Select Type --</option>
                         <option value="pressure">Pressure (Áp suất)</option>
-                        <option value="temperature">Temperature (Nhiệt độ)</option>
+                        <option value="temperature">
+                          Temperature (Nhiệt độ)
+                        </option>
                         <option value="flow">Flow (Lưu lượng)</option>
                         <option value="level">Level (Mức)</option>
-                        <option value="analytical">Analytical (Phân tích)</option>
+                        <option value="analytical">
+                          Analytical (Phân tích)
+                        </option>
                         <option value="safety">Safety (An toàn)</option>
                         <option value="control">Control (Điều khiển)</option>
-                        <option value="monitoring">Monitoring (Giám sát)</option>
+                        <option value="monitoring">
+                          Monitoring (Giám sát)
+                        </option>
                         <option value="other">Other (Khác)</option>
                       </select>
                     </div>
 
                     <div className="form-group">
-                      <label>Manufacturer <span className="required">*</span></label>
+                      <label>
+                        Manufacturer <span className="required">*</span>
+                      </label>
                       <input
                         type="text"
                         name="manufacturer"
@@ -1107,12 +1184,16 @@ res?.data || [];
                         list="manufacturer-suggestions"
                       />
                       <datalist id="manufacturer-suggestions">
-                        {currentSuggestedManufacturers.map(m => <option key={m} value={m} />)}
+                        {currentSuggestedManufacturers.map((m) => (
+                          <option key={m} value={m} />
+                        ))}
                       </datalist>
                     </div>
 
                     <div className="form-group">
-                      <label>Model Number <span className="required">*</span></label>
+                      <label>
+                        Model Number <span className="required">*</span>
+                      </label>
                       <input
                         type="text"
                         name="modelNumber"
@@ -1123,12 +1204,16 @@ res?.data || [];
                         list="model-suggestions"
                       />
                       <datalist id="model-suggestions">
-                        {currentSuggestedModels.map(m => <option key={m} value={m} />)}
+                        {currentSuggestedModels.map((m) => (
+                          <option key={m} value={m} />
+                        ))}
                       </datalist>
                     </div>
 
                     <div className="form-group">
-                      <label>Serial Number <span className="required">*</span></label>
+                      <label>
+                        Serial Number <span className="required">*</span>
+                      </label>
                       <input
                         type="text"
                         name="serialNumber"
@@ -1139,7 +1224,9 @@ res?.data || [];
                         list="serial-suggestions"
                       />
                       <datalist id="serial-suggestions">
-                        {currentSuggestedSerials.map(s => <option key={s} value={s} />)}
+                        {currentSuggestedSerials.map((s) => (
+                          <option key={s} value={s} />
+                        ))}
                       </datalist>
                     </div>
 
@@ -1158,7 +1245,9 @@ res?.data || [];
                         list="location-suggestions"
                       />
                       <datalist id="location-suggestions">
-                        {existingLocations.map((l, idx) => <option key={idx} value={l} />)}
+                        {existingLocations.map((l, idx) => (
+                          <option key={idx} value={l} />
+                        ))}
                       </datalist>
                     </div>
 
@@ -1170,11 +1259,19 @@ res?.data || [];
                         value={formData.status}
                         onChange={handleInputChange}
                       >
-                        <option value="operational">Operational (Hoạt động tốt)</option>
-                        <option value="calibration">Calibration (Đang hiệu chuẩn)</option>
-                        <option value="maintenance">Maintenance (Đang bảo trì)</option>
+                        <option value="operational">
+                          Operational (Hoạt động tốt)
+                        </option>
+                        <option value="calibration">
+                          Calibration (Đang hiệu chuẩn)
+                        </option>
+                        <option value="maintenance">
+                          Maintenance (Đang bảo trì)
+                        </option>
                         <option value="faulty">Faulty (Bị lỗi/Hỏng)</option>
-                        <option value="out-of-service">Out of Service (Ngừng sử dụng)</option>
+                        <option value="out-of-service">
+                          Out of Service (Ngừng sử dụng)
+                        </option>
                       </select>
                     </div>
                   </div>
@@ -1249,13 +1346,19 @@ res?.data || [];
                           type="text"
                           name="unit"
                           className="form-input"
-                          placeholder={currentSuggestedUnits.length > 0 ? currentSuggestedUnits[0] : "Unit"}
+                          placeholder={
+                            currentSuggestedUnits.length > 0
+                              ? currentSuggestedUnits[0]
+                              : "Unit"
+                          }
                           value={formData.unit}
                           onChange={handleInputChange}
                           list="unit-suggestions"
                         />
                         <datalist id="unit-suggestions">
-                          {currentSuggestedUnits.map(u => <option key={u} value={u} />)}
+                          {currentSuggestedUnits.map((u) => (
+                            <option key={u} value={u} />
+                          ))}
                         </datalist>
                       </div>
                     </div>
@@ -1305,7 +1408,6 @@ res?.data || [];
           </div>
         </div>
       )}
-
 
       {/* Assign Engineer Modal */}
       {showAssignModal && (
