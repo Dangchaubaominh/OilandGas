@@ -22,6 +22,8 @@ import {
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import adminEquipmentApi from "../../services/adminEquipmentApi";
+import { showToast } from "../../utils/toastHandler";
+// from "../../services/adminEquipmentApi";
 
 export default function EquipmentControl() {
   const navigate = useNavigate();
@@ -46,16 +48,12 @@ export default function EquipmentControl() {
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({
-    equipmentName: "",
-    equipmentType: "",
-    serialNumber: "",
+    name: "",
+    type: "",
+    serial: "",
     model: "",
     manufacturer: "",
     location: "",
-    installDate: "",
-    currentStatus: "",
-    technicalSpec: "",
-    needsCalibration: false,
   });
 
   const [stats, setStats] = useState({
@@ -68,6 +66,7 @@ export default function EquipmentControl() {
   const fetchStats = useCallback(async () => {
     try {
       const response = await adminEquipmentApi.getStats();
+
       const payload = response?.data?.data || response?.data || {};
       setStats({
         total: Number(payload.total ?? payload.totalEquipment ?? 0),
@@ -192,15 +191,12 @@ export default function EquipmentControl() {
     e.preventDefault();
     try {
       const payload = {
-        name: formData.equipmentName?.trim(),
-        type: formData.equipmentType?.toLowerCase(),
-        serial: formData.serialNumber?.trim(),
+        name: formData.name?.trim(),
+        type: formData.type?.toLowerCase(),
+        serial: formData.serial?.trim(),
         model: formData.model?.trim(),
         manufacturer: formData.manufacturer?.trim(),
         location: formData.location?.trim(),
-        installationDate: formData.installDate || undefined,
-        purchaseDate: formData.installDate || undefined,
-        status: formData.currentStatus?.toLowerCase() || undefined,
       };
 
       if (isEditing && editId) {
@@ -229,45 +225,26 @@ export default function EquipmentControl() {
     setIsEditing(false);
     setEditId(null);
     setFormData({
-      equipmentName: "",
-      equipmentType: "",
-      serialNumber: "",
+      name: "",
+      type: "",
+      serial: "",
       model: "",
       manufacturer: "",
       location: "",
-      installDate: "",
-      currentStatus: "",
-      technicalSpec: "",
-      needsCalibration: false,
     });
   };
 
   const handleEditClick = (item) => {
     setIsEditing(true);
     setEditId(item.id || item._id);
-
     setFormData({
-      equipmentName: item.name || "",
-      equipmentType: item.type || "",
-      serialNumber: item.serial || "",
+      name: item.name || "",
+      type: item.type || "",
+      serial: item.serial || item.equipmentCode || "",
       model: item.model || "",
       manufacturer: item.manufacturer || "",
       location: item.location || "",
-      installDate: item.installationDate
-        ? item.installationDate.substring(0, 10)
-        : item.purchaseDate
-          ? item.purchaseDate.substring(0, 10)
-          : item.createdAt
-            ? item.createdAt.substring(0, 10)
-            : "",
-      currentStatus: item.status || "",
-      technicalSpec:
-        item.technicalSpecs?.specifications
-          ?.map((s) => `${s.parameter}: ${s.value} ${s.unit}`)
-          .join("\n") || "",
-      needsCalibration: false,
     });
-
     setShowModal(true);
   };
 
@@ -529,7 +506,10 @@ export default function EquipmentControl() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedEquipment.map((item) => (
+                  (Array.isArray(paginatedEquipment)
+                    ? paginatedEquipment
+                    : []
+                  ).map((item) => (
                     <tr key={item.id || item._id} className="equipment-row">
                       <td>
                         <span className="tag-id">
@@ -553,7 +533,7 @@ export default function EquipmentControl() {
                       </td>
                       <td>
                         <span className="serial-text">
-                          {item.serial || "-"}
+                          {item.serial || item.equipmentCode || "-"}
                         </span>
                       </td>
                       <td>
@@ -570,8 +550,14 @@ export default function EquipmentControl() {
                         <div className="install-date-info">
                           <FaCalendarAlt className="calendar-icon" />
                           <span>
-                            {item.createdAt
-                              ? new Date(item.createdAt).toLocaleDateString()
+                            {item.installationDate ||
+                            item.purchaseDate ||
+                            item.createdAt
+                              ? new Date(
+                                  item.installationDate ||
+                                    item.purchaseDate ||
+                                    item.createdAt,
+                                ).toLocaleDateString()
                               : "-"}
                           </span>
                         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import jsPDF from "jspdf";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaCube, FaFileExport, FaSync } from "react-icons/fa";
 import adminInstrumentApi from "../../services/adminInstrumentApi";
@@ -87,6 +88,78 @@ export default function InstrumentDetail() {
     return "badge-warning";
   };
 
+  // --- EXPORT HANDLERS ---
+  const handleExportCSV = () => {
+    if (!instrument) return;
+    const rows = [
+      ["Field", "Value"],
+      ["Name", instrument.name || instrument.tagId || "-"],
+      ["Status", instrument.status || "-"],
+      ["Manufacturer", instrument.manufacturer || "-"],
+      ["Model", instrument.model || instrument.modelNumber || "-"],
+      [
+        "Serial/Tag ID",
+        instrument.serial || instrument.serialNumber || instrument.tagId || "-",
+      ],
+      ["Type", instrument.type || instrument.instrumentType || "-"],
+      ["Location", instrument.location || "-"],
+      ["Last Calibrated", formatDate(lastCalibDate)],
+      ["Next Calibration", formatDate(nextCalibDate)],
+      [
+        "Installation Date",
+        formatDate(instrument.installationDate || instrument.createdAt),
+      ],
+    ];
+    const csvContent = rows
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `instrument_${instrument.tagId || instrument.id || "report"}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = () => {
+    if (!instrument) return;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Instrument Report", 14, 16);
+    doc.setFontSize(12);
+    const fields = [
+      ["Name", instrument.name || instrument.tagId || "-"],
+      ["Status", instrument.status || "-"],
+      ["Manufacturer", instrument.manufacturer || "-"],
+      ["Model", instrument.model || instrument.modelNumber || "-"],
+      [
+        "Serial/Tag ID",
+        instrument.serial || instrument.serialNumber || instrument.tagId || "-",
+      ],
+      ["Type", instrument.type || instrument.instrumentType || "-"],
+      ["Location", instrument.location || "-"],
+      ["Last Calibrated", formatDate(lastCalibDate)],
+      ["Next Calibration", formatDate(nextCalibDate)],
+      [
+        "Installation Date",
+        formatDate(instrument.installationDate || instrument.createdAt),
+      ],
+    ];
+    let y = 28;
+    fields.forEach(([label, value]) => {
+      doc.text(`${label}:`, 14, y);
+      doc.text(String(value), 70, y);
+      y += 8;
+    });
+    doc.save(`instrument_${instrument.tagId || instrument.id || "report"}.pdf`);
+  };
+
   if (isLoading) {
     return (
       <div style={{ textAlign: "center", padding: "100px", color: "#64748b" }}>
@@ -158,12 +231,24 @@ export default function InstrumentDetail() {
             </button>
             <button
               className="btn-view-3d"
-              onClick={() => navigate(`/app/instrument/${id}/3d-view`)}
+              onClick={() => navigate("/app/simulator")}
             >
               <FaCube /> View in 3D
             </button>
-            <button className="btn-export">
-              <FaFileExport /> Export Report
+            <button
+              className="btn-export"
+              onClick={handleExportCSV}
+              title="Export as CSV"
+            >
+              <FaFileExport /> Export CSV
+            </button>
+            <button
+              className="btn-export"
+              onClick={handleExportPDF}
+              title="Export as PDF"
+              style={{ marginLeft: 8 }}
+            >
+              <FaFileExport /> Export PDF
             </button>
           </div>
         </div>

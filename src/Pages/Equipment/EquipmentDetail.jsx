@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import jsPDF from "jspdf";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaFileAlt, FaFileExport, FaSync } from "react-icons/fa";
 import adminEquipmentApi from "../../services/adminEquipmentApi";
@@ -81,6 +82,83 @@ export default function EquipmentDetail() {
     );
   }
 
+  // --- EXPORT HANDLERS ---
+  const handleExportCSV = () => {
+    if (!equipment) return;
+    const rows = [
+      ["Field", "Value"],
+      ["Name", equipment.name || "-"],
+      ["Status", equipment.status || "-"],
+      ["Equipment ID", equipment.id || equipment._id?.substring(0, 8) || "-"],
+      ["Type", equipment.type || "-"],
+      ["Location", equipment.location || "-"],
+      ["Model / Part No.", equipment.model || "-"],
+      ["Serial Number", equipment.serial || "-"],
+      ["Manufacturer", equipment.manufacturer || "-"],
+      ["Install Date", formatDate(equipment.createdAt)],
+      ["Installed Since", calculateAge(equipment.createdAt)],
+    ];
+    // Add technical specs if available
+    if (equipment.technicalSpecs) {
+      Object.entries(equipment.technicalSpecs).forEach(([key, value]) => {
+        rows.push([
+          `Spec: ${key.replace(/([A-Z])/g, " $1").trim()}`,
+          value || "--",
+        ]);
+      });
+    }
+    const csvContent = rows
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `equipment_${equipment.id || equipment._id || "report"}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = () => {
+    if (!equipment) return;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Equipment Report", 14, 16);
+    doc.setFontSize(12);
+    const fields = [
+      ["Name", equipment.name || "-"],
+      ["Status", equipment.status || "-"],
+      ["Equipment ID", equipment.id || equipment._id?.substring(0, 8) || "-"],
+      ["Type", equipment.type || "-"],
+      ["Location", equipment.location || "-"],
+      ["Model / Part No.", equipment.model || "-"],
+      ["Serial Number", equipment.serial || "-"],
+      ["Manufacturer", equipment.manufacturer || "-"],
+      ["Install Date", formatDate(equipment.createdAt)],
+      ["Installed Since", calculateAge(equipment.createdAt)],
+    ];
+    let y = 28;
+    fields.forEach(([label, value]) => {
+      doc.text(`${label}:`, 14, y);
+      doc.text(String(value), 70, y);
+      y += 8;
+    });
+    // Add technical specs if available
+    if (equipment.technicalSpecs) {
+      Object.entries(equipment.technicalSpecs).forEach(([key, value]) => {
+        doc.text(`Spec: ${key.replace(/([A-Z])/g, " $1").trim()}:`, 14, y);
+        doc.text(String(value || "--"), 70, y);
+        y += 8;
+      });
+    }
+    doc.save(`equipment_${equipment.id || equipment._id || "report"}.pdf`);
+  };
+
   if (error || !equipment) {
     return (
       <div style={{ textAlign: "center", padding: "100px", color: "#ef4444" }}>
@@ -127,8 +205,20 @@ export default function EquipmentDetail() {
             >
               <FaFileAlt /> View 3D Model
             </button>
-            <button className="btn-order-report">
-              <FaFileExport /> Export Report
+            <button
+              className="btn-order-report"
+              onClick={handleExportCSV}
+              title="Export as CSV"
+            >
+              <FaFileExport /> Export CSV
+            </button>
+            <button
+              className="btn-order-report"
+              onClick={handleExportPDF}
+              title="Export as PDF"
+              style={{ marginLeft: 8 }}
+            >
+              <FaFileExport /> Export PDF
             </button>
           </div>
         </div>
@@ -238,16 +328,18 @@ export default function EquipmentDetail() {
             <h3>Technical Specifications</h3>
             <div className="condition-grid">
               {equipment.technicalSpecs ? (
-                Object.entries(equipment.technicalSpecs).map(([key, value]) => (
-                  <div className="condition-item" key={key}>
-                    <label style={{ textTransform: "capitalize" }}>
-                      {key.replace(/([A-Z])/g, " $1").trim()}
-                    </label>
-                    <div className="condition-value">
-                      <span>{value || "--"}</span>
+                Object.entries(equipment?.technicalSpecs || {}).map(
+                  ([key, value]) => (
+                    <div className="condition-item" key={key}>
+                      <label style={{ textTransform: "capitalize" }}>
+                        {key.replace(/([A-Z])/g, " $1").trim()}
+                      </label>
+                      <div className="condition-value">
+                        <span>{value || "--"}</span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ),
+                )
               ) : (
                 <div className="condition-item">
                   <span>No technical specifications available.</span>
@@ -265,7 +357,10 @@ export default function EquipmentDetail() {
                   No maintenance records found.
                 </p>
               ) : (
-                maintenanceHistory.map((item, index) => (
+                (Array.isArray(maintenanceHistory)
+                  ? maintenanceHistory
+                  : []
+                ).map((item, index) => (
                   <div key={item.id || index} className="maintenance-item">
                     <div className="maintenance-header">
                       <span className="maintenance-date">

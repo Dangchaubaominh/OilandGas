@@ -1,3 +1,4 @@
+import React from "react";
 import { FaTimes, FaPlus, FaSync } from "react-icons/fa";
 
 export default function InstrumentForm({
@@ -25,6 +26,7 @@ export default function InstrumentForm({
     <div className="modal-overlay" onClick={onCancel}>
       <div
         className="modal-content register-instrument-modal"
+        style={{ maxWidth: "900px", width: "100%" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
@@ -45,163 +47,195 @@ export default function InstrumentForm({
 
         <form onSubmit={onSubmit}>
           <div className="modal-body">
-            <div className="form-columns">
-              {/* Basic Information Column */}
-              <div className="form-column">
-                <h3 className="column-title">Basic Information</h3>
-
-                <div className="form-group">
-                  <label>
-                    Name <span className="required">*</span>
-                  </label>
+            
+            {/* VÙNG CHIA 2 CỘT */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
+              
+              {/* ================= CỘT TRÁI ================= */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <h3 style={{ fontSize: "13px", fontWeight: "bold", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid #374151", paddingBottom: "8px", margin: "0" }}>
+                  Basic Information
+                </h3>
+                
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Name <span className="required" style={{ color: "#ef4444" }}>*</span></label>
                   <input
                     type="text"
                     name="name"
                     className="form-input"
                     placeholder="e.g., Flare Gas Analyzer FLW-5"
-                    value={formData.name}
+                    value={formData.name || ""}
                     onChange={onInputChange}
                     required
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>
-                    Type <span className="required">*</span>
-                  </label>
-                  <select
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Type <span className="required" style={{ color: "#ef4444" }}>*</span></label>
+                  <input
+                    type="text"
                     name="type"
-                    className="form-select"
-                    value={formData.type}
+                    className="form-input"
+                    placeholder="e.g., gas"
+                    value={formData.type || ""}
                     onChange={onInputChange}
                     required
-                  >
-                    <option value="">Select Type</option>
-                    <option value="pressure">Pressure</option>
-                    <option value="temperature">Temperature</option>
-                    <option value="flow">Flow</option>
-                    <option value="level">Level</option>
-                    <option value="gas">Gas</option>
-                    <option value="safety">Safety</option>
-                    <option value="other">Other</option>
-                  </select>
+                  />
                 </div>
 
-                <div className="form-group">
-                  <label>
-                    Model <span className="required">*</span>
-                  </label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Model <span className="required" style={{ color: "#ef4444" }}>*</span></label>
                   <input
                     type="text"
                     name="model"
                     className="form-input"
                     placeholder="e.g., FLW-5A"
-                    value={formData.model}
+                    value={formData.model || ""}
                     onChange={onInputChange}
                     required
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>
-                    Manufacturer <span className="required">*</span>
-                  </label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Manufacturer <span className="required" style={{ color: "#ef4444" }}>*</span></label>
                   <input
                     type="text"
                     name="manufacturer"
                     className="form-input"
                     placeholder="e.g., Acme Instruments Ltd."
-                    value={formData.manufacturer}
+                    value={formData.manufacturer || ""}
                     onChange={onInputChange}
                     required
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>
-                    Location <span className="required">*</span>
-                  </label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Location <span className="required" style={{ color: "#ef4444" }}>*</span></label>
                   <input
                     type="text"
                     name="location"
                     className="form-input"
-                    placeholder="e.g., Platform A, Well 3"
-                    value={formData.location}
+                    placeholder="e.g., Platform A - Wellhead 12"
+                    value={formData.location || ""}
                     onChange={onInputChange}
                     required
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="form-group" style={{ margin: 0 }}>
                   <label>Status</label>
                   <select
                     name="status"
-                    className="form-select"
-                    value={formData.status}
+                    className="form-select form-input"
+                    value={formData.status || "operational"}
                     onChange={onInputChange}
                   >
-                    <option value="operational">Active</option>
+                    <option value="operational">Operational</option>
                     <option value="maintenance">Maintenance</option>
-                    <option value="calibration">Calibration</option>
                     <option value="faulty">Faulty</option>
+                    <option value="out-of-service">Out of Service</option>
                   </select>
                 </div>
               </div>
 
-              {/* Calibration & Specs Column */}
-              <div className="form-column">
-                <h3 className="column-title">Specifications & Operational</h3>
-
-                <div className="form-group">
-                  <label>Measurement Range</label>
+              {/* ================= CỘT PHẢI ================= */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <h3 style={{ fontSize: "13px", fontWeight: "bold", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid #374151", paddingBottom: "8px", margin: "0" }}>
+                  Calibration & Specifications
+                </h3>
+                
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Measurement Range <span className="required" style={{ color: "#ef4444" }}>*</span></label>
                   <input
                     type="text"
                     name="measurementRange"
                     className="form-input"
                     placeholder="e.g., 0-1000 ppm"
-                    value={formData.measurementRange}
+                    value={formData.measurementRange || ""}
                     onChange={onInputChange}
+                    required
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Accuracy</label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Accuracy <span className="required" style={{ color: "#ef4444" }}>*</span></label>
                   <input
                     type="text"
                     name="accuracy"
                     className="form-input"
                     placeholder="e.g., ±1%"
-                    value={formData.accuracy}
+                    value={formData.accuracy || ""}
                     onChange={onInputChange}
+                    required
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Sample Rate</label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Sample Rate <span className="required" style={{ color: "#ef4444" }}>*</span></label>
                   <input
                     type="text"
                     name="sampleRate"
                     className="form-input"
                     placeholder="e.g., 1s"
-                    value={formData.sampleRate}
+                    value={formData.sampleRate || ""}
+                    onChange={onInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Auto Calibration</label>
+                  <select
+                    name="autoCalibration"
+                    className="form-select form-input"
+                    value={String(formData.autoCalibration)}
+                    onChange={handleAutoCalibrationChange}
+                  >
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Installation Date</label>
+                  <input
+                    type="date"
+                    name="installationDate"
+                    className="form-input"
+                    style={{ colorScheme: "dark" }}
+                    value={formData.installationDate || ""}
                     onChange={onInputChange}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Auto Calibration</label>
-                  <select
-                    name="autoCalibration"
-                    className="form-select"
-                    value={String(formData.autoCalibration)}
-                    onChange={handleAutoCalibrationChange}
-                  >
-                    <option value="true">True</option>
-                    <option value="false">False</option>
-                  </select>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Last Calibration Date</label>
+                  <input
+                    type="date"
+                    name="lastCalibrationDate"
+                    className="form-input"
+                    style={{ colorScheme: "dark" }}
+                    value={formData.lastCalibrationDate || ""}
+                    onChange={onInputChange}
+                  />
                 </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Calibration Interval (months)</label>
+                  <input
+                    type="number"
+                    name="calibrationInterval"
+                    className="form-input"
+                    placeholder="e.g., 12"
+                    value={formData.calibrationInterval || ""}
+                    onChange={onInputChange}
+                  />
+                </div>
+
               </div>
             </div>
+            {/* KẾT THÚC VÙNG CHIA CỘT */}
+
           </div>
 
           <div className="modal-footer">
@@ -224,8 +258,7 @@ export default function InstrumentForm({
                 </>
               ) : (
                 <>
-                  <FaPlus />{" "}
-                  {editTarget ? "Update Instrument" : "Save Instrument"}
+                  <FaPlus /> {editTarget ? "Update Instrument" : "Save Instrument"}
                 </>
               )}
             </button>

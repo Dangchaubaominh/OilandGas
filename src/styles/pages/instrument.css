@@ -494,3 +494,35 @@
 .instrument-row:hover {
   background: rgba(59, 130, 246, 0.05);
 }
+
+.form-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2 cột bằng nhau */
+  gap: 32px; /* Khoảng cách giữa 2 cột */
+}
+
+/* Các trường dữ liệu trong mỗi cột xếp dọc */
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tiêu đề của mỗi cột (Basic Info / Specs) */
+.column-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+/* Responsive: Khi màn hình nhỏ (như điện thoại), tự động chuyển về 1 cột */
+@media (max-width: 768px) {
+  .form-columns {
+    grid-template-columns: 1fr;
+  }
+}

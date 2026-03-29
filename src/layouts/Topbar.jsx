@@ -13,6 +13,7 @@ export function TopBar() {
   const handleProfileClick = () => {
     navigate("/app/profile");
   };
+  const [showNotifications, setShowNotifications] = React.useState(false);
   return (
     // header: Chiều cao 88px, nền đồng bộ với Sidebar, có viền dưới mờ
     <header className="h-[88px] bg-[var(--topbar-bg)] border-b border-[var(--border-primary)] flex items-center justify-between px-8 z-10 shrink-0 shadow-sm">
@@ -37,14 +38,33 @@ export function TopBar() {
         </button>
 
         {/* Nút chuông thông báo */}
-        <button className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">
-          <FaBell className="text-xl" />
-          {/* Chấm đỏ báo hiệu có thông báo mới */}
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-[var(--topbar-bg)]"></span>
-        </button>
+        <div className="relative">
+          <button
+            className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            onClick={() => setShowNotifications(!showNotifications)}
+          >
+            <FaBell className="text-xl" />
+            {/* Chấm đỏ báo hiệu có thông báo mới */}
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-[var(--topbar-bg)]"></span>
+          </button>
 
-        {/* Đường dọc ngăn cách (Divider) */}
-        <div className="h-8 w-px bg-[var(--border-muted)]"></div>
+          {/* Dropdown Notification Panel */}
+          {showNotifications && (
+            <div
+              className="absolute right-0 mt-2 w-80 bg-gray-800 border border-[var(--border-primary)] rounded-lg shadow-lg z-50"
+              style={{ top: "calc(100% + 8px)", right: "0" }}
+            >
+              <div className="p-4 text-[var(--text-primary)] bg-gray-800">
+                <h4 className="font-semibold text-lg">Notifications</h4>
+              </div>
+              <ul>
+                <li className="p-4 hover:bg-gray-700 transition">
+                  <p className="text-sm text-[var(--text-secondary)]">No new notifications</p>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
 
         {/* Cập nhật: Thêm onClick vào khu vực User Profile */}
         <div

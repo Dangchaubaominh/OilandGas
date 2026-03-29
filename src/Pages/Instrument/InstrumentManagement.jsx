@@ -30,6 +30,8 @@ import adminInstrumentApi from "../../services/adminInstrumentApi";
 import userApi from "../../services/userApi";
 import { showToast } from "../../utils/toastHandler";
 import useAuthStore from "../../store/useAuthStore";
+// 👉 IMPORT COMPONENT FORM Ở ĐÂY
+import InstrumentForm from "./InstrumentForm";
 
 export default function InstrumentManagement() {
   const navigate = useNavigate();
@@ -41,7 +43,7 @@ export default function InstrumentManagement() {
   const [engineers, setEngineers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // States quáº£n lĂ½ filter
+  // States quản lý filter
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -71,20 +73,15 @@ export default function InstrumentManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
-    instrumentCode: "",
-    instrumentType: "",
+    type: "",
+    model: "",
     manufacturer: "",
-    modelNumber: "",
     location: "",
-    installationDate: "",
-    lastCalibrationDate: "",
-    calibrationInterval: "",
-    description: "",
-    serialNumber: "",
-    rangeMin: "",
-    rangeMax: "",
-    unit: "",
     status: "operational",
+    measurementRange: "",
+    accuracy: "",
+    sampleRate: "",
+    autoCalibration: false,
   });
 
   const [stats, setStats] = useState({
@@ -108,8 +105,6 @@ export default function InstrumentManagement() {
       console.error("Error fetching stats:", error);
     }
   }, []);
-
-  // --- FETCH DATA TỪ API ---
 
   // --- DYNAMIC FORM LOGIC ---
   const typeUnitMap = {
@@ -167,7 +162,6 @@ export default function InstrumentManagement() {
   const currentSuggestedManufacturers =
     typeManufacturerMap[formData.instrumentType] || [];
 
-  // Helper to find next logical number/ID from existing strings (e.g. RA-001 -> RA-002)
   const getNextSequence = (existingStrings, prefixDefault) => {
     let maxNum = 0;
     let foundStr = "";
@@ -236,11 +230,9 @@ export default function InstrumentManagement() {
   const fetchEngineers = useCallback(async () => {
     try {
       const res = await userApi.getActiveUsers({ role: "engineer" });
-      const list =
-        res?.data?.data?.users || res?.data?.users || res?.data || [];
+      const list = res?.data?.data?.users || res?.data?.users || res?.data || [];
       setEngineers(Array.isArray(list) ? list : []);
     } catch (error) {
-      // Silent fail or log
       console.error("Failed to fetch engineers:", error);
     }
   }, []);
@@ -249,7 +241,7 @@ export default function InstrumentManagement() {
     fetchEngineers();
   }, [fetchEngineers]);
 
-  // --- FETCH DATA Tá»ª API ---
+  // --- FETCH DATA TỪ API ---
   const fetchInstruments = useCallback(
     async (isManual = false) => {
       setIsLoading(true);
@@ -351,14 +343,13 @@ export default function InstrumentManagement() {
     setFormData((prev) => {
       const newData = { ...prev, [name]: value };
 
-      // Reset unit when type changes and current unit is not in suggested list
       if (name === "instrumentType") {
         const suggestedUnits = typeUnitMap[value] || [];
         if (
           suggestedUnits.length > 0 &&
           !suggestedUnits.includes(newData.unit)
         ) {
-          newData.unit = suggestedUnits[0]; // Auto-select first suitable unit
+          newData.unit = suggestedUnits[0]; 
         } else if (!value) {
           newData.unit = "";
         }
@@ -374,40 +365,28 @@ export default function InstrumentManagement() {
     try {
       const instrumentData = {
         name: formData.name,
-        instrumentCode: formData.instrumentCode || undefined,
-        description: formData.description,
-        type: formData.instrumentType,
-        serial: formData.serialNumber || undefined,
-        model: formData.modelNumber,
+        type: formData.type,
+        model: formData.model,
         manufacturer: formData.manufacturer,
         location: formData.location,
         status: formData.status || "operational",
         specifications: {
-          ...editTarget?.specifications,
-          range:
-            formData.rangeMin && formData.rangeMax
-              ? `${formData.rangeMin}-${formData.rangeMax} ${formData.unit || ""}`.trim()
-              : undefined,
+          measurementRange: formData.measurementRange || undefined,
+          accuracy: formData.accuracy || undefined,
         },
-        installationDate: formData.installationDate || undefined,
-        lastCalibrationDate: formData.lastCalibrationDate || undefined,
-        calibrationInterval: formData.calibrationInterval
-          ? parseInt(formData.calibrationInterval, 10)
-          : undefined,
-        operationalParameters: editTarget?.operationalParameters
-          ? { ...editTarget.operationalParameters }
-          : undefined,
+        operationalParameters: {
+          sampleRate: formData.sampleRate || undefined,
+          autoCalibration: formData.autoCalibration || false,
+        },
       };
 
       if (editTarget) {
-        // Update existing instrument
         await adminInstrumentApi.update(
           editTarget._id || editTarget.id,
           instrumentData,
         );
         showToast("success", "Instrument updated successfully!");
       } else {
-        // Create new instrument
         await adminInstrumentApi.create(instrumentData);
         showToast("success", "Instrument created successfully!");
       }
@@ -416,11 +395,8 @@ export default function InstrumentManagement() {
       fetchInstruments(true);
     } catch (err) {
       let errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to save instrument";
+        err.response?.data?.message || err.message || "Failed to save instrument";
 
-      // Extract detailed validation errors if they exist from the backend
       if (err.response?.data?.error && Array.isArray(err.response.data.error)) {
         errorMessage = err.response.data.error
           .map((e) => `${e.field}: ${e.message}`)
@@ -460,13 +436,11 @@ export default function InstrumentManagement() {
   const handleEditClick = (instrument) => {
     setEditTarget(instrument);
 
-    // Parse range
     let rangeMin = "";
     let rangeMax = "";
     let unit = "";
     if (instrument.specifications?.range) {
       const rangeText = instrument.specifications.range;
-      // Match patterns like "0-100", "-50 to 500", "0.5 - 1.5", etc.
       const match = rangeText.match(
         /^([-\d.]+)\s*(?:-|to)\s*([-\d.]+)\s*(.*)$/i,
       );
@@ -475,7 +449,6 @@ export default function InstrumentManagement() {
         rangeMax = match[2];
         unit = match[3] || "";
       } else {
-        // Fallback simple parsing
         const parts = rangeText.split(" ");
         if (parts.length >= 1) {
           const minMax = parts[0].split("-");
@@ -483,7 +456,6 @@ export default function InstrumentManagement() {
             rangeMin = minMax[0];
             rangeMax = minMax[1];
           } else if (minMax.length === 3 && parts[0].startsWith("-")) {
-            // handles "-50-500" -> ["", "50", "500"]
             rangeMin = "-" + minMax[1];
             rangeMax = minMax[2];
           }
@@ -498,7 +470,6 @@ export default function InstrumentManagement() {
       instrument.operationalParameters?.calibrationDate ||
       instrument.lastCalibrationDate;
 
-    // Calculate interval if possible (in months)
     let calcInterval = instrument.calibrationInterval || "";
     if (
       !calcInterval &&
@@ -510,8 +481,6 @@ export default function InstrumentManagement() {
       let months =
         (d2.getFullYear() - d1.getFullYear()) * 12 +
         (d2.getMonth() - d1.getMonth());
-
-      // Fallback for previous bug where interval was saved as days instead of months
       if (months === 0 && d2.getTime() > d1.getTime()) {
         const diffDays = Math.round(
           (d2.getTime() - d1.getTime()) / (1000 * 3600 * 24),
@@ -551,7 +520,6 @@ export default function InstrumentManagement() {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setIsSubmitting(true);
-
     try {
       await adminInstrumentApi.delete(deleteTarget._id || deleteTarget.id);
       showToast("success", "Instrument deleted successfully!");
@@ -644,6 +612,7 @@ export default function InstrumentManagement() {
             Monitor calibration status and manage field instruments
           </p>
         </div>
+
         <div className="page-header-actions">
           <button
             className="btn-secondary btn-reload"
@@ -1005,6 +974,7 @@ export default function InstrumentManagement() {
                           >
                             <FaEye />
                           </button>
+
                           <button
                             className="btn-icon btn-edit"
                             title="Edit"
@@ -1083,331 +1053,16 @@ export default function InstrumentManagement() {
         </>
       )}
 
-      {/* Add/Edit Instrument Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={handleCancel}>
-          <div
-            className="modal-content register-instrument-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <div>
-                <h2>
-                  {editTarget ? "Edit Instrument" : "Register New Instrument"}
-                </h2>
-                <p className="modal-subtitle">
-                  {editTarget
-                    ? "Update instrument information"
-                    : "Add a new instrument to the registry"}
-                </p>
-              </div>
-              <button className="modal-close" onClick={handleCancel}>
-                <FaTimes />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-columns">
-                  {/* Basic Information Column */}
-                  <div className="form-column">
-                    <h3 className="column-title">Basic Information</h3>
-
-                    <div className="form-group">
-                      <label>
-                        Instrument Name <span className="required">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        className="form-input"
-                        placeholder="e.g., Main Pressure Transmitter"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Instrument Code</label>
-                      <input
-                        type="text"
-                        name="instrumentCode"
-                        className="form-input"
-                        placeholder="Leave blank to auto-generate (e.g., INST_0001)"
-                        value={formData.instrumentCode}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>
-                        Instrument Type <span className="required">*</span>
-                      </label>
-                      <select
-                        name="instrumentType"
-                        className="form-select"
-                        value={formData.instrumentType}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">-- Select Type --</option>
-                        <option value="pressure">Pressure (Áp suất)</option>
-                        <option value="temperature">
-                          Temperature (Nhiệt độ)
-                        </option>
-                        <option value="flow">Flow (Lưu lượng)</option>
-                        <option value="level">Level (Mức)</option>
-                        <option value="analytical">
-                          Analytical (Phân tích)
-                        </option>
-                        <option value="safety">Safety (An toàn)</option>
-                        <option value="control">Control (Điều khiển)</option>
-                        <option value="monitoring">
-                          Monitoring (Giám sát)
-                        </option>
-                        <option value="other">Other (Khác)</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>
-                        Manufacturer <span className="required">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="manufacturer"
-                        className="form-input"
-                        placeholder="e.g., Emerson, Siemens"
-                        value={formData.manufacturer}
-                        onChange={handleInputChange}
-                        list="manufacturer-suggestions"
-                      />
-                      <datalist id="manufacturer-suggestions">
-                        {currentSuggestedManufacturers.map((m) => (
-                          <option key={m} value={m} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div className="form-group">
-                      <label>
-                        Model Number <span className="required">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="modelNumber"
-                        className="form-input"
-                        placeholder="e.g., 3051S"
-                        value={formData.modelNumber}
-                        onChange={handleInputChange}
-                        list="model-suggestions"
-                      />
-                      <datalist id="model-suggestions">
-                        {currentSuggestedModels.map((m) => (
-                          <option key={m} value={m} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div className="form-group">
-                      <label>
-                        Serial Number <span className="required">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="serialNumber"
-                        className="form-input"
-                        placeholder="Enter serial number"
-                        value={formData.serialNumber}
-                        onChange={handleInputChange}
-                        list="serial-suggestions"
-                      />
-                      <datalist id="serial-suggestions">
-                        {currentSuggestedSerials.map((s) => (
-                          <option key={s} value={s} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div className="form-group">
-                      <label>
-                        Location <span className="required">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="location"
-                        className="form-input"
-                        placeholder="e.g., Platform A, Well 3"
-                        value={formData.location}
-                        onChange={handleInputChange}
-                        required
-                        list="location-suggestions"
-                      />
-                      <datalist id="location-suggestions">
-                        {existingLocations.map((l, idx) => (
-                          <option key={idx} value={l} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Status</label>
-                      <select
-                        name="status"
-                        className="form-select"
-                        value={formData.status}
-                        onChange={handleInputChange}
-                      >
-                        <option value="operational">
-                          Operational (Hoạt động tốt)
-                        </option>
-                        <option value="calibration">
-                          Calibration (Đang hiệu chuẩn)
-                        </option>
-                        <option value="maintenance">
-                          Maintenance (Đang bảo trì)
-                        </option>
-                        <option value="faulty">Faulty (Bị lỗi/Hỏng)</option>
-                        <option value="out-of-service">
-                          Out of Service (Ngừng sử dụng)
-                        </option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Calibration & Specs Column */}
-                  <div className="form-column">
-                    <h3 className="column-title">
-                      Calibration & Specifications
-                    </h3>
-
-                    <div className="form-group">
-                      <label>Installation Date</label>
-                      <input
-                        type="date"
-                        name="installationDate"
-                        className="form-input"
-                        value={formData.installationDate}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Last Calibration Date</label>
-                      <input
-                        type="date"
-                        name="lastCalibrationDate"
-                        className="form-input"
-                        value={formData.lastCalibrationDate}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Calibration Interval (months)</label>
-                      <input
-                        type="number"
-                        name="calibrationInterval"
-                        className="form-input"
-                        placeholder="e.g., 12"
-                        min="1"
-                        value={formData.calibrationInterval}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Range Min</label>
-                        <input
-                          type="number"
-                          name="rangeMin"
-                          className="form-input"
-                          placeholder="0"
-                          value={formData.rangeMin}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Range Max</label>
-                        <input
-                          type="number"
-                          name="rangeMax"
-                          className="form-input"
-                          placeholder="100"
-                          value={formData.rangeMax}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Unit</label>
-                        <input
-                          type="text"
-                          name="unit"
-                          className="form-input"
-                          placeholder={
-                            currentSuggestedUnits.length > 0
-                              ? currentSuggestedUnits[0]
-                              : "Unit"
-                          }
-                          value={formData.unit}
-                          onChange={handleInputChange}
-                          list="unit-suggestions"
-                        />
-                        <datalist id="unit-suggestions">
-                          {currentSuggestedUnits.map((u) => (
-                            <option key={u} value={u} />
-                          ))}
-                        </datalist>
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Description / Notes</label>
-                      <textarea
-                        name="description"
-                        className="form-textarea"
-                        placeholder="Additional notes about this instrument..."
-                        rows="3"
-                        value={formData.description}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <FaSync className="spin" /> Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FaPlus />{" "}
-                      {editTarget ? "Update Instrument" : "Save Instrument"}
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* 👉 GỌI COMPONENT FORM Ở ĐÂY THAY CHO FORM CŨ */}
+      <InstrumentForm
+        showModal={showModal}
+        formData={formData}
+        editTarget={editTarget}
+        isSubmitting={isSubmitting}
+        onInputChange={handleInputChange}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+      />
 
       {/* Assign Engineer Modal */}
       {showAssignModal && (
