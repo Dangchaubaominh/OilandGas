@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   FaTools,
   FaExclamationTriangle,
-  FaFilter,
   FaOilCan,
   FaClock,
 } from "react-icons/fa";
@@ -19,6 +18,7 @@ export default function Dashboard() {
       setIsLoading(true);
       setLoadError("");
       try {
+        // Tạm thời vẫn gọi API thực tế cho 4 thẻ thống kê ở trên cùng
         const [dashboardResponse, oilOutputResponse] = await Promise.all([
           dashboardApi.getDashboard(),
           dashboardApi.getOilOutput({ hours: 24 }),
@@ -33,33 +33,14 @@ export default function Dashboard() {
           oilOutputResponse?.data ||
           oilOutputResponse;
 
-        // Transform dashboard data to match new API response structure
         const transformedData = {
           operationalEquipment:
             (dashboardPayload?.equipment?.operational || 0) +
             (dashboardPayload?.instruments?.operational || 0),
           maintenancePending: dashboardPayload?.maintenance?.pending || 0,
           openIncidents: dashboardPayload?.incidents?.open || 0,
-          criticalAlerts: dashboardPayload?.incidents?.open || 0, // Adjust if you have a separate field for critical
-          equipment: dashboardPayload?.equipment || {
-            total: 0,
-            operational: 0,
-            nonOperational: 0,
-          },
-          instruments: dashboardPayload?.instruments || {
-            total: 0,
-            operational: 0,
-            nonOperational: 0,
-          },
+          criticalAlerts: dashboardPayload?.incidents?.open || 0,
           timestamp: new Date().toISOString(),
-          todayProduction: {
-            value: oilPayload?.value || 0,
-            unit: "barrels",
-          },
-          systemUptime: {
-            value: 99.9,
-            unit: "%",
-          },
         };
 
         setDashboardData(transformedData);
@@ -119,62 +100,27 @@ export default function Dashboard() {
     [dashboardData],
   );
 
-  // Total equipment and instruments
-  const equipmentTotal =
-    Number(dashboardData?.equipment?.total || 0) +
-    Number(dashboardData?.instruments?.total || 0);
-
+  // --- MOCK DATA TRÔNG NHƯ THẬT ---
   const maintenanceActivities = [
     {
-      id: "INST-1823",
-      task: "Flowrate Pump",
-      status: "Completed",
-      statusColor: "text-emerald-400",
+      id: "INST-4012",
+      task: "Centrifugal Pump P-102",
+      bgColor: "bg-[#3b82f6]", // Blue (In Progress)
     },
     {
-      id: "WRHS-2156",
-      task: "Spare Parts Survey",
-      status: "In Progress",
-      statusColor: "text-blue-400",
+      id: "GEN-0908",
+      task: "Gas Turbine Generator",
+      bgColor: "bg-[#f59e0b]", // Orange (Scheduled)
     },
     {
-      id: "CALIB-3894",
-      task: "Pressure Gauge XL-90",
-      status: "Completed",
-      statusColor: "text-emerald-400",
+      id: "VAL-1120",
+      task: "Pressure Valve V-33",
+      bgColor: "bg-[#10b981]", // Green (Completed)
     },
     {
-      id: "EMRG-4512",
-      task: "Valve Malfunction",
-      status: "Overdue",
-      statusColor: "text-red-400",
-    },
-  ];
-
-  const incidents = [
-    {
-      id: "INC-3324",
-      description: "Compressor Shutdown Event A11",
-      time: "12:45 PM",
-      severity: "Critical",
-    },
-    {
-      id: "INC-3323",
-      description: "Temperature spike at Storage B (High)",
-      time: "11:30 AM",
-      severity: "Warning",
-    },
-    {
-      id: "INC-3322",
-      description: "Pressure drop pipeline sector 7 (Low)",
-      time: "09:15 AM",
-      severity: "Warning",
-    },
-    {
-      id: "INC-3321",
-      description: "Safety valve triggered at well head",
-      time: "08:00 AM",
-      severity: "Critical",
+      id: "HX-0551",
+      task: "Heat Exchanger Tube Leak",
+      bgColor: "bg-[#ef4444]", // Red (Critical/Overdue)
     },
   ];
 
@@ -198,7 +144,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* --- Row 1: Stats Cards --- */}
+      {/* --- Row 1: Stats Cards (Dynamic API Data) --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <div
@@ -224,9 +170,10 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* --- Row 2: Charts --- */}
+      {/* --- MOCK DATA SECTION --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Critical Trends Chart */}
+        
+        {/* Critical Trends Chart (Đã tinh chỉnh đường line cho dốc và thực tế hơn) */}
         <div className="lg:col-span-2 bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-md">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-[var(--text-primary)]">
@@ -234,26 +181,27 @@ export default function Dashboard() {
             </h3>
             <div className="flex items-center gap-4 text-xs font-medium text-[var(--text-secondary)]">
               <span className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div> Gas
+                <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6]"></div> Gas
               </span>
               <span className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>{" "}
-                Oil
+                <div className="w-2.5 h-2.5 rounded-full bg-[#10b981]"></div> Oil
               </span>
             </div>
           </div>
           <div className="w-full h-64 bg-[var(--bg-surface)] rounded-xl flex items-center justify-center border border-[var(--border-primary)]/50 p-4">
             <svg viewBox="0 0 400 200" className="w-full h-full preserve-3d">
+              {/* Biểu đồ Gas */}
               <polyline
-                points="0,150 50,120 100,140 150,100 200,110 250,80 300,90 350,60 400,70"
+                points="0,160 50,130 100,150 150,110 200,90 250,105 300,60 350,75 400,40"
                 fill="none"
                 stroke="#3b82f6"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
+              {/* Biểu đồ Oil */}
               <polyline
-                points="0,180 50,170 100,160 150,150 200,145 250,130 300,120 350,100 400,95"
+                points="0,185 50,175 100,165 150,140 200,145 250,120 300,110 350,85 400,90"
                 fill="none"
                 stroke="#10b981"
                 strokeWidth="3"
@@ -264,7 +212,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Equipment Health Status */}
+        {/* Equipment Health Status (Dữ liệu giả: Tổng 142 thiết bị) */}
         <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-md flex flex-col">
           <h3 className="text-lg font-bold text-[var(--text-primary)] mb-6">
             Equipment Health
@@ -275,49 +223,30 @@ export default function Dashboard() {
                 viewBox="0 0 200 200"
                 className="w-full h-full transform -rotate-90"
               >
+                {/* Vòng background xám */}
+                <circle cx="100" cy="100" r="70" fill="none" stroke="var(--border-muted)" strokeWidth="20" />
+                
+                {/* Vòng Xanh Lá: Hoạt động (81% ~ 356 chu vi) */}
                 <circle
-                  cx="100"
-                  cy="100"
-                  r="70"
-                  fill="none"
-                  stroke="var(--border-muted)"
-                  strokeWidth="20"
+                  cx="100" cy="100" r="70" fill="none" stroke="#10b981" strokeWidth="20"
+                  strokeDasharray="356 440" strokeDashoffset="0"
                 />
+                
+                {/* Vòng Cam: Bảo trì (15% ~ 66 chu vi) */}
                 <circle
-                  cx="100"
-                  cy="100"
-                  r="70"
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="20"
-                  strokeDasharray="308 440"
-                  strokeDashoffset="0"
-                  className="transition-all duration-1000"
+                  cx="100" cy="100" r="70" fill="none" stroke="#f59e0b" strokeWidth="20"
+                  strokeDasharray="66 440" strokeDashoffset="-356"
                 />
+                
+                {/* Vòng Đỏ: Lỗi nghiêm trọng (4% ~ 18 chu vi) */}
                 <circle
-                  cx="100"
-                  cy="100"
-                  r="70"
-                  fill="none"
-                  stroke="#f59e0b"
-                  strokeWidth="20"
-                  strokeDasharray="88 440"
-                  strokeDashoffset="-308"
-                />
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="70"
-                  fill="none"
-                  stroke="#ef4444"
-                  strokeWidth="20"
-                  strokeDasharray="44 440"
-                  strokeDashoffset="-396"
+                  cx="100" cy="100" r="70" fill="none" stroke="#ef4444" strokeWidth="20"
+                  strokeDasharray="18 440" strokeDashoffset="-422"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold text-[var(--text-primary)]">
-                  {fmt(equipmentTotal)}
+                <span className="text-4xl font-bold text-[var(--text-primary)]">
+                  142
                 </span>
                 <span className="text-xs text-[var(--text-muted)] uppercase tracking-widest mt-1">
                   Total
@@ -327,45 +256,53 @@ export default function Dashboard() {
 
             <div className="flex justify-between w-full px-2 text-xs font-medium text-[var(--text-secondary)]">
               <div className="flex flex-col items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-emerald-500"></span>{" "}
-                Operational
+                <span className="w-3 h-3 rounded-full bg-[#10b981]"></span> 115 Ops
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-amber-500"></span>{" "}
-                Maintenance
+                <span className="w-3 h-3 rounded-full bg-[#f59e0b]"></span> 22 Maint
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-red-500"></span>{" "}
-                Critical
+                <span className="w-3 h-3 rounded-full bg-[#ef4444]"></span> 5 Crit
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- Row 3: Lists --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Today's Production (Sản lượng cao trông có vẻ "làm ăn được") */}
         <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-md">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-bold text-[var(--text-primary)]">
               Today's Production
             </h3>
-            <FaOilCan className="text-amber-400" />
+            <FaOilCan className="text-amber-400 text-xl" />
           </div>
-          <p className="text-4xl font-bold text-[var(--text-primary)] mt-4">
-            {fmt(dashboardData?.todayProduction?.value)}
+          <p className="text-5xl font-bold text-[var(--text-primary)] mt-4">
+            42,580
           </p>
-          <p className="text-[var(--text-secondary)] mt-1">
-            {dashboardData?.todayProduction?.unit || "units"}
+          <p className="text-[var(--text-secondary)] mt-1 font-medium">
+            barrels
           </p>
-          <div className="mt-6 pt-4 border-t border-[var(--border-primary)]">
-            <p className="text-sm text-[var(--text-secondary)]">
-              System Uptime
-            </p>
-            <p className="text-2xl font-semibold text-emerald-400 mt-1">
-              {dashboardData?.systemUptime?.value ?? 0}
-              {dashboardData?.systemUptime?.unit || "%"}
-            </p>
+          
+          <div className="mt-8 pt-5 border-t border-[var(--border-primary)] flex justify-between items-center">
+            <div>
+              <p className="text-sm text-[var(--text-secondary)] mb-1">
+                System Uptime
+              </p>
+              <p className="text-2xl font-bold text-[#10b981]">
+                99.8%
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-[var(--text-secondary)] mb-1">
+                Target Reached
+              </p>
+              <p className="text-2xl font-bold text-[#3b82f6]">
+                105%
+              </p>
+            </div>
           </div>
         </div>
 
@@ -375,7 +312,7 @@ export default function Dashboard() {
             <h3 className="text-lg font-bold text-[var(--text-primary)]">
               Maintenance Activities
             </h3>
-            <button className="text-sm text-blue-500 hover:text-blue-400 transition-colors font-medium">
+            <button className="text-sm text-[#3b82f6] hover:text-blue-400 transition-colors font-medium">
               View All
             </button>
           </div>
@@ -389,15 +326,12 @@ export default function Dashboard() {
                   <span className="text-[var(--text-primary)] font-medium text-sm">
                     {activity.task}
                   </span>
-                  <span className="text-[var(--text-muted)] text-xs mt-0.5">
+                  <span className="text-[var(--text-muted)] text-xs mt-1">
                     {activity.id}
                   </span>
                 </div>
-                <span
-                  className={`text-xs font-bold px-3 py-1 rounded-full bg-opacity-10 bg-current ${activity.statusColor}`}
-                >
-                  {activity.status}
-                </span>
+                {/* Colored Pill without text to match the image exactly */}
+                <div className={`w-12 h-4 rounded-full ${activity.bgColor} shadow-sm`}></div>
               </div>
             ))}
           </div>

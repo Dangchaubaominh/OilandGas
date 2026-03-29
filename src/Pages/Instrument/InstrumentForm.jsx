@@ -47,18 +47,44 @@ export default function InstrumentForm({
 
         <form onSubmit={onSubmit}>
           <div className="modal-body">
-            
             {/* VÙNG CHIA 2 CỘT */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
-              
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "40px",
+              }}
+            >
               {/* ================= CỘT TRÁI ================= */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <h3 style={{ fontSize: "13px", fontWeight: "bold", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid #374151", paddingBottom: "8px", margin: "0" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: "bold",
+                    color: "#9ca3af",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                    borderBottom: "1px solid #374151",
+                    paddingBottom: "8px",
+                    margin: "0",
+                  }}
+                >
                   Basic Information
                 </h3>
-                
+
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label>Name <span className="required" style={{ color: "#ef4444" }}>*</span></label>
+                  <label>
+                    Name{" "}
+                    <span className="required" style={{ color: "#ef4444" }}>
+                      *
+                    </span>
+                  </label>
                   <input
                     type="text"
                     name="name"
@@ -71,20 +97,53 @@ export default function InstrumentForm({
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label>Type <span className="required" style={{ color: "#ef4444" }}>*</span></label>
-                  <input
-                    type="text"
+                  <label>
+                    Type{" "}
+                    <span className="required" style={{ color: "#ef4444" }}>
+                      *
+                    </span>
+                  </label>
+                  <select
                     name="type"
-                    className="form-input"
-                    placeholder="e.g., gas"
+                    className="form-select form-input"
                     value={formData.type || ""}
                     onChange={onInputChange}
                     required
+                  >
+                    <option value="" disabled>
+                      -- Select Type --
+                    </option>
+                    <option value="pressure">Pressure</option>
+                    <option value="temperature">Temperature</option>
+                    <option value="flow">Flow</option>
+                    <option value="level">Level</option>
+                    <option value="analytical">Analytical</option>
+                    <option value="safety">Safety</option>
+                    <option value="control">Control</option>
+                    <option value="monitoring">Monitoring</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Serial Number</label>
+                  <input
+                    type="text"
+                    name="serialNumber"
+                    className="form-input"
+                    placeholder="e.g., SN-12345-67890"
+                    value={formData.serialNumber || ""}
+                    onChange={onInputChange}
                   />
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label>Model <span className="required" style={{ color: "#ef4444" }}>*</span></label>
+                  <label>
+                    Model{" "}
+                    <span className="required" style={{ color: "#ef4444" }}>
+                      *
+                    </span>
+                  </label>
                   <input
                     type="text"
                     name="model"
@@ -97,7 +156,12 @@ export default function InstrumentForm({
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label>Manufacturer <span className="required" style={{ color: "#ef4444" }}>*</span></label>
+                  <label>
+                    Manufacturer{" "}
+                    <span className="required" style={{ color: "#ef4444" }}>
+                      *
+                    </span>
+                  </label>
                   <input
                     type="text"
                     name="manufacturer"
@@ -110,7 +174,12 @@ export default function InstrumentForm({
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label>Location <span className="required" style={{ color: "#ef4444" }}>*</span></label>
+                  <label>
+                    Location{" "}
+                    <span className="required" style={{ color: "#ef4444" }}>
+                      *
+                    </span>
+                  </label>
                   <input
                     type="text"
                     name="location"
@@ -122,6 +191,7 @@ export default function InstrumentForm({
                   />
                 </div>
 
+                {/* Đã cập nhật lại list Status theo đúng format mới */}
                 <div className="form-group" style={{ margin: 0 }}>
                   <label>Status</label>
                   <select
@@ -131,21 +201,44 @@ export default function InstrumentForm({
                     onChange={onInputChange}
                   >
                     <option value="operational">Operational</option>
+                    <option value="calibration">Calibration</option>
                     <option value="maintenance">Maintenance</option>
                     <option value="faulty">Faulty</option>
-                    <option value="out-of-service">Out of Service</option>
+                    <option value="out-of-service">Out of service</option>
                   </select>
                 </div>
               </div>
 
               {/* ================= CỘT PHẢI ================= */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <h3 style={{ fontSize: "13px", fontWeight: "bold", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid #374151", paddingBottom: "8px", margin: "0" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: "bold",
+                    color: "#9ca3af",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                    borderBottom: "1px solid #374151",
+                    paddingBottom: "8px",
+                    margin: "0",
+                  }}
+                >
                   Calibration & Specifications
                 </h3>
-                
+
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label>Measurement Range <span className="required" style={{ color: "#ef4444" }}>*</span></label>
+                  <label>
+                    Measurement Range{" "}
+                    <span className="required" style={{ color: "#ef4444" }}>
+                      *
+                    </span>
+                  </label>
                   <input
                     type="text"
                     name="measurementRange"
@@ -158,7 +251,12 @@ export default function InstrumentForm({
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label>Accuracy <span className="required" style={{ color: "#ef4444" }}>*</span></label>
+                  <label>
+                    Accuracy{" "}
+                    <span className="required" style={{ color: "#ef4444" }}>
+                      *
+                    </span>
+                  </label>
                   <input
                     type="text"
                     name="accuracy"
@@ -171,7 +269,12 @@ export default function InstrumentForm({
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label>Sample Rate <span className="required" style={{ color: "#ef4444" }}>*</span></label>
+                  <label>
+                    Sample Rate{" "}
+                    <span className="required" style={{ color: "#ef4444" }}>
+                      *
+                    </span>
+                  </label>
                   <input
                     type="text"
                     name="sampleRate"
@@ -231,11 +334,9 @@ export default function InstrumentForm({
                     onChange={onInputChange}
                   />
                 </div>
-
               </div>
             </div>
             {/* KẾT THÚC VÙNG CHIA CỘT */}
-
           </div>
 
           <div className="modal-footer">
@@ -258,7 +359,8 @@ export default function InstrumentForm({
                 </>
               ) : (
                 <>
-                  <FaPlus /> {editTarget ? "Update Instrument" : "Save Instrument"}
+                  <FaPlus />{" "}
+                  {editTarget ? "Update Instrument" : "Save Instrument"}
                 </>
               )}
             </button>

@@ -230,7 +230,8 @@ export default function InstrumentManagement() {
   const fetchEngineers = useCallback(async () => {
     try {
       const res = await userApi.getActiveUsers({ role: "engineer" });
-      const list = res?.data?.data?.users || res?.data?.users || res?.data || [];
+      const list =
+        res?.data?.data?.users || res?.data?.users || res?.data || [];
       setEngineers(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error("Failed to fetch engineers:", error);
@@ -349,7 +350,7 @@ export default function InstrumentManagement() {
           suggestedUnits.length > 0 &&
           !suggestedUnits.includes(newData.unit)
         ) {
-          newData.unit = suggestedUnits[0]; 
+          newData.unit = suggestedUnits[0];
         } else if (!value) {
           newData.unit = "";
         }
@@ -363,40 +364,88 @@ export default function InstrumentManagement() {
     setIsSubmitting(true);
 
     try {
-      const instrumentData = {
-        name: formData.name,
-        type: formData.type,
-        model: formData.model,
-        manufacturer: formData.manufacturer,
-        location: formData.location,
-        status: formData.status || "operational",
-        specifications: {
-          measurementRange: formData.measurementRange || undefined,
-          accuracy: formData.accuracy || undefined,
-        },
-        operationalParameters: {
-          sampleRate: formData.sampleRate || undefined,
-          autoCalibration: formData.autoCalibration || false,
-        },
-      };
-
       if (editTarget) {
+        // --- CHỈ LẤY ĐÚNG 3 TRƯỜNG CHO API UPDATE (PUT) ---
+        const updatePayload = {
+          name: formData.name,
+          model: formData.model,
+          serial: formData.serialNumber || `SN-${Date.now()}`, // Frontend hiển thị là serialNumber, nhưng gửi đi là serial
+        };
+
+        // Gọi API Update
         await adminInstrumentApi.update(
           editTarget._id || editTarget.id,
-          instrumentData,
+          updatePayload,
         );
         showToast("success", "Instrument updated successfully!");
       } else {
-        await adminInstrumentApi.create(instrumentData);
+        // --- LẤY FULL DỮ LIỆU CHO API CREATE (POST) ---
+
+        // 1. Tính toán ngày tháng
+        let calibrationDate = undefined;
+        let nextCalibrationDate = undefined;
+
+        if (formData.lastCalibrationDate) {
+          calibrationDate = new Date(formData.lastCalibrationDate);
+          if (formData.calibrationInterval) {
+            nextCalibrationDate = new Date(calibrationDate);
+            nextCalibrationDate.setMonth(
+              nextCalibrationDate.getMonth() +
+                Number(formData.calibrationInterval),
+            );
+          }
+        }
+
+        // 2. Gom payload đầy đủ
+        const createPayload = {
+          name: formData.name,
+          type: formData.type,
+          serial: formData.serialNumber || `SN-${Date.now()}`,
+          model: formData.model,
+          manufacturer: formData.manufacturer,
+          location: formData.location,
+          status: formData.status || "operational",
+          specifications: {
+            range: formData.measurementRange,
+            accuracy: formData.accuracy,
+            technicalSpecs: [
+              {
+                parameter: "Sample Rate",
+                value: formData.sampleRate || "",
+              },
+              {
+                parameter: "Auto Calibration",
+                value:
+                  formData.autoCalibration === "true" ||
+                  formData.autoCalibration === true
+                    ? "Enabled"
+                    : "Disabled",
+              },
+            ],
+          },
+          operationalParameters: {
+            calibrationDate: calibrationDate,
+            nextCalibrationDate: nextCalibrationDate,
+          },
+          installationDate: formData.installationDate
+            ? new Date(formData.installationDate)
+            : undefined,
+        };
+
+        // Gọi API Create
+        await adminInstrumentApi.create(createPayload);
         showToast("success", "Instrument created successfully!");
       }
 
       handleCancel();
-      fetchInstruments(true);
+      fetchInstruments(true); // Load lại danh sách thiết bị
     } catch (err) {
       let errorMessage =
-        err.response?.data?.message || err.message || "Failed to save instrument";
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to save instrument";
 
+      // Xử lý báo lỗi chi tiết từ Backend
       if (err.response?.data?.error && Array.isArray(err.response.data.error)) {
         errorMessage = err.response.data.error
           .map((e) => `${e.field}: ${e.message}`)
@@ -434,81 +483,60 @@ export default function InstrumentManagement() {
   };
 
   const handleEditClick = (instrument) => {
+    // Lưu lại thiết bị đang được edit để biết là gọi API Update chứ không phải Create
     setEditTarget(instrument);
 
-    let rangeMin = "";
-    let rangeMax = "";
-    let unit = "";
-    if (instrument.specifications?.range) {
-      const rangeText = instrument.specifications.range;
-      const match = rangeText.match(
-        /^([-\d.]+)\s*(?:-|to)\s*([-\d.]+)\s*(.*)$/i,
-      );
-      if (match) {
-        rangeMin = match[1];
-        rangeMax = match[2];
-        unit = match[3] || "";
-      } else {
-        const parts = rangeText.split(" ");
-        if (parts.length >= 1) {
-          const minMax = parts[0].split("-");
-          if (minMax.length === 2 && minMax[0] !== "") {
-            rangeMin = minMax[0];
-            rangeMax = minMax[1];
-          } else if (minMax.length === 3 && parts[0].startsWith("-")) {
-            rangeMin = "-" + minMax[1];
-            rangeMax = minMax[2];
-          }
-        }
-        if (parts.length >= 2 && !unit) {
-          unit = parts.slice(1).join(" ");
-        }
-      }
-    }
+    // --- 1. XỬ LÝ ĐỊNH DẠNG NGÀY THÁNG (YYYY-MM-DD) CHO THẺ <input type="date"> ---
+    const installDate = instrument.installationDate
+      ? new Date(instrument.installationDate).toISOString().split("T")[0]
+      : "";
 
-    const lastCalib =
-      instrument.operationalParameters?.calibrationDate ||
-      instrument.lastCalibrationDate;
+    const lastCalibDateStr = instrument.operationalParameters?.calibrationDate;
+    const lastCalibDate = lastCalibDateStr
+      ? new Date(lastCalibDateStr).toISOString().split("T")[0]
+      : "";
 
-    let calcInterval = instrument.calibrationInterval || "";
+    // --- 2. TÍNH TOÁN LẠI CHU KỲ HIỆU CHUẨN (Tháng) ---
+    let calcInterval = "";
     if (
-      !calcInterval &&
       instrument.operationalParameters?.calibrationDate &&
       instrument.operationalParameters?.nextCalibrationDate
     ) {
       const d1 = new Date(instrument.operationalParameters.calibrationDate);
       const d2 = new Date(instrument.operationalParameters.nextCalibrationDate);
+      // Lấy năm nhân 12 + độ lệch tháng
       let months =
         (d2.getFullYear() - d1.getFullYear()) * 12 +
         (d2.getMonth() - d1.getMonth());
-      if (months === 0 && d2.getTime() > d1.getTime()) {
-        const diffDays = Math.round(
-          (d2.getTime() - d1.getTime()) / (1000 * 3600 * 24),
-        );
-        if (diffDays > 0 && diffDays <= 120) months = diffDays;
-      }
-      calcInterval = months ? String(months) : "";
+      calcInterval = months > 0 ? String(months) : "";
     }
 
+    // --- 3. ĐỔ DỮ LIỆU TỪ BACKEND VÀO STATE CỦA FORM ---
     setFormData({
       name: instrument.name || "",
-      instrumentCode: instrument.instrumentCode || "",
-      description: instrument.description || "",
-      instrumentType: instrument.type || "",
+      type: instrument.type || "",
+      serialNumber: instrument.serialNumber || "",
+      model: instrument.model || "",
       manufacturer: instrument.manufacturer || "",
-      modelNumber: instrument.model || "",
       location: instrument.location || "",
-      installationDate: instrument.installationDate
-        ? instrument.installationDate.split("T")[0]
-        : "",
-      lastCalibrationDate: lastCalib ? lastCalib.split("T")[0] : "",
+      status: instrument.status || "open",
+
+      // Bóc tách từ object specifications
+      measurementRange: instrument.specifications?.measurementRange || "",
+      accuracy: instrument.specifications?.accuracy || "",
+
+      // Bóc tách từ object operationalParameters
+      sampleRate: instrument.operationalParameters?.sampleRate || "",
+      autoCalibration:
+        instrument.operationalParameters?.autoCalibration ?? false,
+
+      // Gắn ngày tháng đã format
+      installationDate: installDate,
+      lastCalibrationDate: lastCalibDate,
       calibrationInterval: calcInterval,
-      serialNumber: instrument.serial || instrument.serialNumber || "",
-      rangeMin: rangeMin,
-      rangeMax: rangeMax,
-      unit: unit,
-      status: instrument.status || "operational",
     });
+
+    // Mở Form lên
     setShowModal(true);
   };
 
@@ -544,21 +572,30 @@ export default function InstrumentManagement() {
   };
 
   const onAssignSubmit = async () => {
+    // 1. Kiểm tra xem đã chọn ai chưa
     if (!selectedEngineer) {
       showToast("error", "Please select an engineer");
       return;
     }
+
+    // 2. Lấy ID của thiết bị đang được giao việc
     const targetId = assignTarget._id || assignTarget.id;
+
+    setIsSubmitting(true); // Bật trạng thái loading (nếu bạn có dùng)
+
     try {
       await adminInstrumentApi.assignEngineer(targetId, selectedEngineer);
+
       showToast("success", `Engineer assigned to ${assignTarget.name}`);
-      setShowAssignModal(false);
-      fetchInstruments(true);
+      setShowAssignModal(false); // Đóng popup
+      fetchInstruments(true); // Load lại bảng danh sách để cập nhật dữ liệu mới
     } catch (error) {
       showToast(
         "error",
         error.response?.data?.message || "Failed to assign engineer",
       );
+    } finally {
+      setIsSubmitting(false); // Tắt trạng thái loading
     }
   };
 

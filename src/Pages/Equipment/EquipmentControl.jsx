@@ -683,6 +683,7 @@ export default function EquipmentControl() {
               <div className="modal-body">
                 <div className="form-columns">
                   {/* General Information Column */}
+                  {/* General Information Column */}
                   <div className="form-column">
                     <h3 className="column-title">General Information</h3>
 
@@ -692,10 +693,10 @@ export default function EquipmentControl() {
                       </label>
                       <input
                         type="text"
-                        name="equipmentName"
+                        name="name" // Đã sửa từ equipmentName -> name
                         className="form-input"
                         placeholder="Enter equipment name"
-                        value={formData.equipmentName}
+                        value={formData.name} // Đã sửa
                         onChange={handleInputChange}
                         required
                       />
@@ -706,9 +707,9 @@ export default function EquipmentControl() {
                         Equipment Type <span className="required">*</span>
                       </label>
                       <select
-                        name="equipmentType"
+                        name="type" // Đã sửa từ equipmentType -> type
                         className="form-select"
-                        value={formData.equipmentType}
+                        value={formData.type} // Đã sửa
                         onChange={handleInputChange}
                         required
                       >
@@ -728,10 +729,10 @@ export default function EquipmentControl() {
                       </label>
                       <input
                         type="text"
-                        name="serialNumber"
+                        name="serial" // Đã sửa từ serialNumber -> serial
                         className="form-input"
                         placeholder="Enter serial number"
-                        value={formData.serialNumber}
+                        value={formData.serial} // Đã sửa
                         onChange={handleInputChange}
                         required
                       />
