@@ -368,8 +368,12 @@ export default function InstrumentManagement() {
         // --- CHỈ LẤY ĐÚNG 3 TRƯỜNG CHO API UPDATE (PUT) ---
         const updatePayload = {
           name: formData.name,
+          type: formData.type,
           model: formData.model,
-          serial: formData.serialNumber || `SN-${Date.now()}`, // Frontend hiển thị là serialNumber, nhưng gửi đi là serial
+          manufacturer: formData.manufacturer,
+          status: formData.status || "operational",
+          location: formData.location,
+          // Frontend hiển thị là serialNumber, nhưng gửi đi là serial
         };
 
         // Gọi API Update
@@ -899,7 +903,7 @@ export default function InstrumentManagement() {
                     >
                       <td>
                         <span className="tag-id">
-                          {instrument.tagId ||
+                          {instrument.instrumentCode ||
                             String(
                               instrument.id || instrument._id || "",
                             ).substring(0, 8)}

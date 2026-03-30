@@ -139,10 +139,11 @@ export default function Schedule() {
       };
     });
 
-  const upcomingMaintenance = upcomingMaintenanceAll.slice(0, 5);
+  // Show only 3 by default, all in modal
+  const upcomingMaintenance = upcomingMaintenanceAll.slice(0, 3);
 
   // C. Xử lý Lịch Quá Hạn (Overdue - Quá khứ & Chưa hoàn thành)
-  const overdueMaintenance = records
+  const overdueMaintenanceAll = records
     .filter(
       (r) => new Date(r.scheduledDate) < today && r.status !== "completed",
     )
@@ -166,6 +167,8 @@ export default function Schedule() {
         raw: r,
       };
     });
+  // Show only 3 by default, all in modal
+  const overdueMaintenance = overdueMaintenanceAll.slice(0, 3);
 
   const openScheduleDetails = async (schedule) => {
     setSelectedSchedule(schedule);
@@ -587,7 +590,7 @@ export default function Schedule() {
                 <p className="text-gray-500 text-sm mt-4">No overdue tasks.</p>
               )}
 
-              {overdueMaintenance.map((task) => (
+              {overdueMaintenanceAll.map((task) => (
                 <div
                   key={`overdue-modal-${task.id}`}
                   className="task-item task-overdue"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FaDownload,
   FaPlus,
@@ -176,15 +176,18 @@ export default function Reports() {
   });
   const [reportForm, setReportForm] = useState({
     type: "maintenance",
-    category: "technical",
     from: getMonthStart(),
     to: getToday(),
     format: "pdf",
     template: "standard",
     title: "",
     description: "",
+    // Thêm 2 mảng này vào để khớp với cấu trúc payload mới
+    locations: ["Platform A", "Platform B"],
+    equipmentTypes: ["pumping", "drilling"],
   });
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ open: false, report: null });
 
   const reportStats = useMemo(() => {
     const completed = reports.filter(
@@ -338,26 +341,28 @@ export default function Reports() {
     setIsGenerating(true);
 
     try {
-      const response = await reportsApi.generateReport({
+      const payload = {
         type: reportForm.type,
         from: reportForm.from,
         to: reportForm.to,
         format: reportForm.format,
         template: reportForm.template,
-        title:
-          reportForm.title.trim() || `${formatLabel(reportForm.type)} Report`,
+        title: reportForm.title.trim() || "Monthly Maintenance Report",
         description:
           reportForm.description.trim() ||
-          `${formatLabel(reportForm.category)} ${formatLabel(reportForm.type)} report for ${reportForm.from} to ${reportForm.to}`,
+          "Comprehensive maintenance report for March 2026",
         filters: {
-          category: reportForm.category,
+          locations: reportForm.locations,
+          equipmentTypes: reportForm.equipmentTypes,
         },
         distribution: {
           email: {
             enabled: false,
           },
         },
-      });
+      };
+
+      const response = await reportsApi.generateReport(payload);
 
       const generatedReport = normalizeReport(getResponsePayload(response));
 
@@ -519,30 +524,26 @@ export default function Reports() {
     }
   };
 
-  const handleDeleteReport = async (report) => {
-    const reportId = report._reportId;
+  const handleDeleteReport = (report) => {
+    setDeleteModal({ open: true, report });
+  };
 
+  const confirmDeleteReport = async () => {
+    const report = deleteModal.report;
+    if (!report) return;
+    const reportId = report.reportCode;
     if (!reportId) {
       showToast("warning", "Missing report id.");
+      setDeleteModal({ open: false, report: null });
       return;
     }
-
-    const shouldDelete = window.confirm(`Delete report "${report.title}"?`);
-
-    if (!shouldDelete) {
-      return;
-    }
-
     setActiveReportId(reportId);
-
     try {
       await reportsApi.deleteReport(reportId);
-      setReports((prev) => prev.filter((item) => item._reportId !== reportId));
-      setPagination((prev) => ({
-        ...prev,
-        totalItems: Math.max(0, prev.totalItems - 1),
-      }));
+      setDeleteModal({ open: false, report: null });
       showToast("success", "Report deleted successfully.");
+      // Reload the reports list after deletion
+      await fetchReports(1);
     } catch (error) {
       showToast("error", getErrorMessage(error, "Failed to delete report."));
     } finally {
@@ -792,14 +793,7 @@ export default function Reports() {
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button
-                          className="btn-icon btn-edit"
-                          onClick={() => handleCheckStatus(report._reportId)}
-                          disabled={isBusy}
-                          title="Check status"
-                        >
-                          <FaSyncAlt />
-                        </button>
+                        {/* Check status button removed */}
                         <button
                           className="btn-icon btn-edit"
                           onClick={() => handleDownloadReport(report, "pdf")}
@@ -871,9 +865,87 @@ export default function Reports() {
         onGenerate={async () => {
           await handleGenerateReport();
           setShowGenerateModal(false);
+          // Always reload after modal closes, in case of async issues
+          await fetchReports(1);
         }}
         onClose={() => setShowGenerateModal(false)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.open && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15,23,42,0.8)",
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              color: "#f8fafc",
+              borderRadius: 8,
+              padding: 32,
+              minWidth: 340,
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 24,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
+              Delete Report
+            </div>
+            <div style={{ color: "#94a3b8", textAlign: "center" }}>
+              Are you sure you want to delete report{" "}
+              <b>"{deleteModal.report?.title}"</b>?
+            </div>
+            <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+              <button
+                onClick={() => setDeleteModal({ open: false, report: null })}
+                style={{
+                  padding: "10px 20px",
+                  background: "transparent",
+                  border: "1px solid #334155",
+                  borderRadius: 6,
+                  color: "#f8fafc",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                }}
+                disabled={activeReportId === deleteModal.report?.reportCode}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteReport}
+                style={{
+                  padding: "10px 20px",
+                  background: "#ef4444",
+                  border: "none",
+                  borderRadius: 6,
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+                disabled={activeReportId === deleteModal.report?.reportCode}
+              >
+                {activeReportId === deleteModal.report?.reportCode
+                  ? "Deleting..."
+                  : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

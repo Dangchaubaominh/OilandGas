@@ -62,6 +62,7 @@ const normalizeWarehouses = (payload) => {
   return Array.isArray(rows)
     ? rows.map((item) => ({
         _id: item._id,
+        warehouseCode: item.warehouseCode,
         name: toDisplayText(item.name, "Unnamed warehouse"),
         location: toDisplayText(item.location, "Unknown location"),
         capacity: Number(item.capacity || 0),
@@ -113,7 +114,10 @@ export default function WarehouseInventory() {
     try {
       const res = await equipmentApi.getEquipmentList({ limit: 1000 });
       const list =
-        res?.data?.equipment || res?.data?.data || res?.equipment || [];
+        res?.data?.data?.equipment ||
+        res?.data?.equipment ||
+        res?.equipment ||
+        [];
       setEquipments(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error("Failed to load equipments", err);
@@ -215,7 +219,11 @@ export default function WarehouseInventory() {
     const payload = {
       name: whForm.name?.trim(),
       location: whForm.location?.trim(),
-      capacity: Number(whForm.capacity),
+      capacity: {
+        total: whForm.capacity,
+        used: 0,
+        unit: "litres",
+      },
       description: whForm.description?.trim() || undefined,
     };
 
@@ -274,30 +282,32 @@ export default function WarehouseInventory() {
   const handleReceive = async (e) => {
     e.preventDefault();
     try {
+      // 1. Gom dữ liệu và ép kiểu cho chuẩn Payload
       const payload = {
         warehouseId: receiveForm.warehouseId,
-        quantity: receiveForm.quantity,
-        supplierOrDestination: receiveForm.supplierOrDestination,
+        equipmentId: receiveForm.equipmentId?.trim(),
+        quantity: Number(receiveForm.quantity), // Ép kiểu về số nguyên
+        supplierOrDestination: receiveForm.supplierOrDestination?.trim(),
+        // Chuyển ngày giờ sang chuẩn ISO String, nếu không nhập thì lấy giờ hiện tại
+        actionDate: receiveForm.actionDate
+          ? new Date(receiveForm.actionDate).toISOString()
+          : new Date().toISOString(),
+        note: receiveForm.note?.trim() || "string", // Có thể đổi "string" thành "" tùy BE yêu cầu
       };
 
-      if (receiveForm.actionDate) {
-        payload.actionDate = receiveForm.actionDate;
+      // 2. Xóa bỏ equipmentId nếu nó rỗng (để tránh lỗi cast ObjectId dưới Backend)
+      if (!payload.equipmentId) {
+        delete payload.equipmentId;
       }
 
-      // Clean up equipmentId: only send if explicitly set and not empty string
-      if (receiveForm.equipmentId && receiveForm.equipmentId.trim() !== "") {
-        payload.equipmentId = receiveForm.equipmentId.trim();
-      }
-
-      // Only include note if it's not empty
-      if (receiveForm.note && receiveForm.note.trim() !== "") {
-        payload.note = receiveForm.note.trim();
-      }
-
+      // 3. Gọi API
       await warehouseApi.receive(payload);
       showToast("success", "Inventory received successfully");
+
+      // 4. Xử lý UI sau khi thành công
       setReceiveModal(false);
       await fetchWarehouses();
+
       if (viewModal.open && viewModal.wh?._id === receiveForm.warehouseId) {
         await loadLogs(viewModal.wh._id);
       }
@@ -314,32 +324,39 @@ export default function WarehouseInventory() {
     if (!dispatchModal.warehouse?._id) return;
 
     try {
+      // 1. Gom dữ liệu và ép kiểu cho chuẩn Payload
       const payload = {
         warehouseId: dispatchModal.warehouse._id,
-        quantity: dispatchForm.quantity,
-        supplierOrDestination: dispatchForm.supplierOrDestination,
+        equipmentId: dispatchForm.equipmentId?.trim(),
+        quantity: Number(dispatchForm.quantity),
+        supplierOrDestination: dispatchForm.supplierOrDestination?.trim(),
+        // Chuyển ngày giờ sang chuẩn ISO String, nếu không nhập thì lấy giờ hiện tại
+        actionDate: dispatchForm.actionDate
+          ? new Date(dispatchForm.actionDate).toISOString()
+          : new Date().toISOString(),
+        note: dispatchForm.note?.trim() || "string",
       };
 
-      if (dispatchForm.actionDate) {
-        payload.actionDate = dispatchForm.actionDate;
+      // 2. Xóa bỏ equipmentId nếu nó rỗng (để tránh lỗi cast ObjectId dưới Backend)
+      if (!payload.equipmentId) {
+        delete payload.equipmentId;
       }
 
-      if (dispatchForm.equipmentId && dispatchForm.equipmentId.trim() !== "") {
-        payload.equipmentId = dispatchForm.equipmentId.trim();
-      }
-      // Only include note if it's not empty
-      if (dispatchForm.note && dispatchForm.note.trim() !== "") {
-        payload.note = dispatchForm.note.trim();
-      }
+      // 3. Gọi API xuất kho
       await warehouseApi.dispatch(payload);
       showToast("success", "Inventory dispatched successfully");
+
+      // 4. Reset form và đóng Modal
       setDispatchModal({ open: false, warehouse: null });
       setDispatchForm({
         quantity: "",
         supplierOrDestination: "",
         note: "",
         equipmentId: "",
+        actionDate: "",
       });
+
+      // 5. Cập nhật lại giao diện
       await fetchWarehouses();
       if (viewModal.open && viewModal.wh?._id === dispatchModal.warehouse._id) {
         await loadLogs(dispatchModal.warehouse._id);
@@ -491,7 +508,7 @@ export default function WarehouseInventory() {
                 return (
                   <tr key={wh._id}>
                     <td style={{ fontFamily: "monospace", color: "#60a5fa" }}>
-                      {wh._id}
+                      {wh.warehouseCode}
                     </td>
                     <td>
                       <div style={{ fontWeight: 500 }}>{wh.name}</div>
@@ -930,7 +947,7 @@ export default function WarehouseInventory() {
                     <option value="">Select an Equipment (Optional)</option>
                     {equipments.map((eq) => (
                       <option key={eq._id || eq.id} value={eq._id || eq.id}>
-                        {eq.name} ({eq.serial || eq.type})
+                        {eq.name} ({eq.equipmentCode || eq.type})
                       </option>
                     ))}
                   </select>

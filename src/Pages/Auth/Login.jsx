@@ -99,9 +99,7 @@ const Login = () => {
         {/* --- CỘT PHẢI: Form đăng nhập --- */}
         <div className="w-full md:w-1/2 p-10 flex flex-col justify-center relative">
           <div className="mb-8">
-            <h2 className="text-white text-2xl font-bold mb-2">
-              Engineer Login
-            </h2>
+            <h2 className="text-white text-2xl font-bold mb-2">Login</h2>
             <p className="text-gray-400 text-sm">
               Enter your credentials to access the system
             </p>

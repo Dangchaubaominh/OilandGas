@@ -195,6 +195,10 @@ export default function EquipmentControl() {
         type: formData.type?.toLowerCase(),
         serial: formData.serial?.trim(),
         model: formData.model?.trim(),
+        status: formData.currentStatus?.toLowerCase(),
+        installationDate: formData.installDate,
+        technicalSpec: formData.technicalSpec?.trim(),
+        needsCalibration: formData.needsCalibration,
         manufacturer: formData.manufacturer?.trim(),
         location: formData.location?.trim(),
       };
@@ -231,6 +235,10 @@ export default function EquipmentControl() {
       model: "",
       manufacturer: "",
       location: "",
+      currentStatus: "",
+      installDate: "",
+      technicalSpec: "",
+      needsCalibration: false,
     });
   };
 
@@ -467,7 +475,6 @@ export default function EquipmentControl() {
                 <tr>
                   <th>EQUIPMENT ID</th>
                   <th>EQUIPMENT</th>
-                  <th>SERIAL NUMBER</th>
                   <th>MANUFACTURER</th>
                   <th>INSTALL DATE</th>
                   <th>LOCATION</th>
@@ -478,7 +485,7 @@ export default function EquipmentControl() {
               <tbody>
                 {paginatedEquipment.length === 0 ? (
                   <tr>
-                    <td colSpan="8">
+                    <td colSpan="100%" className="no-data-cell">
                       <div className="empty-state">
                         <FaCogs className="empty-icon" />
                         <h3>No Equipment Found</h3>
@@ -513,7 +520,7 @@ export default function EquipmentControl() {
                     <tr key={item.id || item._id} className="equipment-row">
                       <td>
                         <span className="tag-id">
-                          {(item.id || item._id)?.substring(0, 8)}
+                          {(item.equipmentCode || item.equipmentCode)?.substring(0, 15)}
                         </span>
                       </td>
                       <td>
@@ -531,11 +538,7 @@ export default function EquipmentControl() {
                           </div>
                         </div>
                       </td>
-                      <td>
-                        <span className="serial-text">
-                          {item.serial || item.equipmentCode || "-"}
-                        </span>
-                      </td>
+                      
                       <td>
                         <div className="manufacturer-info">
                           <span className="manufacturer-name">
