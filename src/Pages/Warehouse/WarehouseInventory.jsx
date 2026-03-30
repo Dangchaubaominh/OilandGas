@@ -15,9 +15,24 @@ import {
 } from "react-icons/fa";
 import warehouseApi from "../../services/warehouseApi";
 import equipmentApi from "../../services/equipmentApi";
+import userApi from "../../services/userApi";
 import { showToast } from "../../utils/toastHandler";
 
-const EMPTY_WH = { name: "", location: "", capacity: "", description: "" };
+const EMPTY_WH = {
+  name: "",
+  type: "main",
+  description: "",
+  manager: "",
+  forceAssign: false,
+  locationAddress: "",
+  locationCity: "",
+  locationCountry: "Vietnam",
+  locationLat: "",
+  locationLng: "",
+  capacityTotal: "",
+  capacityUsed: "0",
+  capacityUnit: "litres",
+};
 const EMPTY_RECEIVE = {
   equipmentId: "",
   warehouseId: "",
@@ -57,19 +72,60 @@ const toDisplayText = (value, fallback = "") => {
   return fallback;
 };
 
+const toFiniteNumber = (value, fallback = 0) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const toOptionalNumber = (value) => {
+  if (value === "" || value == null) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+};
+
+const normalizeCapacity = (capacity) => {
+  if (capacity && typeof capacity === "object") {
+    return {
+      total: toFiniteNumber(capacity.total, 0),
+      used: toFiniteNumber(capacity.used, 0),
+      unit: toDisplayText(capacity.unit, "units") || "units",
+    };
+  }
+
+  return {
+    total: toFiniteNumber(capacity, 0),
+    used: 0,
+    unit: "units",
+  };
+};
+
 const normalizeWarehouses = (payload) => {
   const rows = payload?.data?.warehouses || payload?.warehouses || [];
   return Array.isArray(rows)
-    ? rows.map((item) => ({
+    ? rows.map((item) => {
+      const cap = normalizeCapacity(item.capacity);
+      const locationObj =
+        item.location && typeof item.location === "object" ? item.location : {};
+      const currentLoad = toFiniteNumber(item.currentLoad, cap.used);
+
+      return {
         _id: item._id,
-        warehouseCode: item.warehouseCode,
+        warehouseCode: item.warehouseCode || item.code,
         name: toDisplayText(item.name, "Unnamed warehouse"),
         location: toDisplayText(item.location, "Unknown location"),
-        capacity: Number(item.capacity || 0),
-        currentLoad: Number(item.currentLoad || 0),
+        locationObj,
+        capacity: cap.total,
+        capacityUsed: cap.used,
+        capacityUnit: cap.unit,
+        currentLoad,
         description: toDisplayText(item.description),
         status: item.status || "active",
-      }))
+        type: item.type || "main",
+        manager:
+          typeof item.manager === "string" ? item.manager : item.manager?._id || "",
+        forceAssign: Boolean(item.forceAssign),
+      };
+    })
     : [];
 };
 
@@ -109,6 +165,7 @@ export default function WarehouseInventory() {
     maxQty: "",
   });
   const [equipments, setEquipments] = useState([]);
+  const [managers, setManagers] = useState([]);
 
   const loadEquipments = async () => {
     try {
@@ -121,6 +178,33 @@ export default function WarehouseInventory() {
       setEquipments(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error("Failed to load equipments", err);
+    }
+  };
+
+  const loadManagers = async () => {
+    try {
+      const res = await userApi.getActiveUsers({ limit: 1000 });
+      const rows =
+        res?.data?.data?.users ||
+        res?.data?.users ||
+        res?.users ||
+        res?.data?.data ||
+        [];
+
+      const normalized = Array.isArray(rows)
+        ? rows
+          .map((user) => ({
+            id: user?._id || user?.id || "",
+            name: toDisplayText(user?.fullName || user?.name, ""),
+            email: toDisplayText(user?.email, ""),
+          }))
+          .filter((user) => Boolean(user.id))
+        : [];
+
+      setManagers(normalized);
+    } catch (err) {
+      console.error("Failed to load users", err);
+      setManagers([]);
     }
   };
 
@@ -149,6 +233,7 @@ export default function WarehouseInventory() {
   useEffect(() => {
     fetchWarehouses();
     loadEquipments();
+    loadManagers();
   }, [fetchWarehouses]);
 
   const stats = useMemo(() => {
@@ -177,16 +262,6 @@ export default function WarehouseInventory() {
     });
   }, [warehouses, search, statusFilter]);
 
-  const uniqueLocations = useMemo(() => {
-    return [
-      ...new Set(warehouses.map((w) => w.location).filter(Boolean)),
-      "Main Base",
-      "Offshore Platform",
-      "Storage Facility A",
-      "Storage Facility B",
-    ];
-  }, [warehouses]);
-
   const pct = (load, cap) => (cap > 0 ? Math.round((load / cap) * 100) : 0);
   const capClass = (p) =>
     p >= 75
@@ -202,11 +277,31 @@ export default function WarehouseInventory() {
   };
 
   const openEdit = (wh) => {
+    const hasStructuredLocation =
+      wh.locationObj && Object.keys(wh.locationObj).length > 0;
+
     setWhForm({
       name: wh.name,
-      location: wh.location,
-      capacity: String(wh.capacity),
+      type: wh.type || "main",
       description: wh.description || "",
+      manager: wh.manager || "",
+      forceAssign: Boolean(wh.forceAssign),
+      locationAddress: hasStructuredLocation
+        ? toDisplayText(wh.locationObj?.address, "")
+        : toDisplayText(wh.location, ""),
+      locationCity: toDisplayText(wh.locationObj?.city, ""),
+      locationCountry: toDisplayText(wh.locationObj?.country, "Vietnam"),
+      locationLat:
+        wh.locationObj?.coordinates?.lat !== undefined
+          ? String(wh.locationObj.coordinates.lat)
+          : "",
+      locationLng:
+        wh.locationObj?.coordinates?.lng !== undefined
+          ? String(wh.locationObj.coordinates.lng)
+          : "",
+      capacityTotal: String(wh.capacity || 0),
+      capacityUsed: String(wh.capacityUsed || 0),
+      capacityUnit: wh.capacityUnit || "units",
     });
     setWhModal({ open: true, mode: "edit", data: wh });
   };
@@ -216,23 +311,54 @@ export default function WarehouseInventory() {
 
   const handleSaveWh = async (e) => {
     e.preventDefault();
-    const payload = {
-      name: whForm.name?.trim(),
-      location: whForm.location?.trim(),
-      capacity: {
-        total: whForm.capacity,
-        used: 0,
-        unit: "litres",
-      },
-      description: whForm.description?.trim() || undefined,
-    };
 
     try {
       if (whModal.mode === "create") {
-        await warehouseApi.create(payload);
+        const lat = toOptionalNumber(whForm.locationLat);
+        const lng = toOptionalNumber(whForm.locationLng);
+
+        const createPayload = {
+          name: whForm.name?.trim(),
+          type: whForm.type,
+          description: whForm.description?.trim() || undefined,
+          manager: whForm.manager?.trim() || undefined,
+          forceAssign: Boolean(whForm.forceAssign),
+          location: {
+            address: whForm.locationAddress?.trim() || undefined,
+            city: whForm.locationCity?.trim() || undefined,
+            country: whForm.locationCountry?.trim() || undefined,
+            coordinates:
+              lat !== undefined || lng !== undefined
+                ? {
+                  lat,
+                  lng,
+                }
+                : undefined,
+          },
+          capacity: {
+            total: toFiniteNumber(whForm.capacityTotal, 0),
+            used: toFiniteNumber(whForm.capacityUsed, 0),
+            unit: whForm.capacityUnit?.trim() || "units",
+          },
+        };
+
+        await warehouseApi.create(createPayload);
         showToast("success", "Warehouse created successfully");
       } else {
-        await warehouseApi.update(whModal.data._id, payload);
+        const updatePayload = {
+          name: whForm.name?.trim(),
+          location: {
+            address: whForm.locationAddress?.trim() || undefined,
+            city: whForm.locationCity?.trim() || undefined,
+          },
+          capacity: {
+            total: toFiniteNumber(whForm.capacityTotal, 0),
+            used: toFiniteNumber(whForm.capacityUsed, 0),
+          },
+          description: whForm.description?.trim() || undefined,
+        };
+
+        await warehouseApi.update(whModal.data._id, updatePayload);
         showToast("success", "Warehouse updated successfully");
       }
       closeWhModal();
@@ -530,7 +656,7 @@ export default function WarehouseInventory() {
                         <div className="capacity-info">
                           <span className="capacity-text">
                             {wh.currentLoad.toLocaleString()} /{" "}
-                            {wh.capacity.toLocaleString()} units
+                            {wh.capacity.toLocaleString()} {wh.capacityUnit}
                           </span>
                           <span
                             className={`capacity-percent ${capClass(percent)}`}
@@ -592,7 +718,7 @@ export default function WarehouseInventory() {
           <div
             className="modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 480 }}
+            style={{ maxWidth: 760 }}
           >
             <div className="modal-header">
               <div>
@@ -624,36 +750,195 @@ export default function WarehouseInventory() {
                     }
                   />
                 </div>
-                <div className="form-group">
-                  <label>Location *</label>
-                  <select
-                    className="form-input"
-                    required
-                    value={whForm.location}
-                    onChange={(e) =>
-                      setWhForm((p) => ({ ...p, location: e.target.value }))
-                    }
-                  >
-                    <option value="">-- Select Location --</option>
-                    {uniqueLocations.map((loc) => (
-                      <option key={loc} value={loc}>
-                        {loc}
-                      </option>
-                    ))}
-                  </select>
+                {whModal.mode === "create" && (
+                  <div className="form-group">
+                    <label>Type *</label>
+                    <select
+                      className="form-input"
+                      required
+                      value={whForm.type}
+                      onChange={(e) =>
+                        setWhForm((p) => ({ ...p, type: e.target.value }))
+                      }
+                    >
+                      <option value="main">Main</option>
+                      <option value="field">Field</option>
+                      <option value="temporary">Temporary</option>
+                      <option value="offshore">Offshore</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                )}
+                {whModal.mode === "create" && (
+                  <div className="form-group">
+                    <label>Manager (User ID)</label>
+                    <select
+                      className="form-input"
+                      value={whForm.manager}
+                      onChange={(e) =>
+                        setWhForm((p) => ({ ...p, manager: e.target.value }))
+                      }
+                    >
+                      <option value="">-- Select Manager (Optional) --</option>
+                      {managers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.name || user.email || user.id}
+                          {" - "}
+                          {user.id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                  }}
+                >
+                  <div className="form-group">
+                    <label>Address *</label>
+                    <input
+                      className="form-input"
+                      required
+                      value={whForm.locationAddress}
+                      onChange={(e) =>
+                        setWhForm((p) => ({
+                          ...p,
+                          locationAddress: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>City *</label>
+                    <input
+                      className="form-input"
+                      required
+                      value={whForm.locationCity}
+                      onChange={(e) =>
+                        setWhForm((p) => ({ ...p, locationCity: e.target.value }))
+                      }
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Capacity (units) *</label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min="1"
-                    required
-                    value={whForm.capacity}
-                    onChange={(e) =>
-                      setWhForm((p) => ({ ...p, capacity: e.target.value }))
-                    }
-                  />
+                {whModal.mode === "create" && (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 12,
+                    }}
+                  >
+                    <>
+                      <div className="form-group">
+                        <label>Country *</label>
+                        <input
+                          className="form-input"
+                          required
+                          value={whForm.locationCountry}
+                          onChange={(e) =>
+                            setWhForm((p) => ({
+                              ...p,
+                              locationCountry: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Force Assign</label>
+                        <div style={{ paddingTop: 10 }}>
+                          <input
+                            type="checkbox"
+                            checked={whForm.forceAssign}
+                            onChange={(e) =>
+                              setWhForm((p) => ({
+                                ...p,
+                                forceAssign: e.target.checked,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </>
+                  </div>
+                )}
+                {whModal.mode === "create" && (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 12,
+                    }}
+                  >
+                    <div className="form-group">
+                      <label>Latitude</label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        step="any"
+                        value={whForm.locationLat}
+                        onChange={(e) =>
+                          setWhForm((p) => ({ ...p, locationLat: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Longitude</label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        step="any"
+                        value={whForm.locationLng}
+                        onChange={(e) =>
+                          setWhForm((p) => ({ ...p, locationLng: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      whModal.mode === "create" ? "1fr 1fr 1fr" : "1fr 1fr",
+                    gap: 12,
+                  }}
+                >
+                  <div className="form-group">
+                    <label>Capacity Total *</label>
+                    <input
+                      className="form-input"
+                      type="number"
+                      min="0"
+                      required
+                      value={whForm.capacityTotal}
+                      onChange={(e) =>
+                        setWhForm((p) => ({
+                          ...p,
+                          capacityTotal: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  {whModal.mode === "create" && (
+                    <div className="form-group">
+                      <label>Unit *</label>
+                      <input
+                        className="form-input"
+                        required
+                        value={whForm.capacityUnit}
+                        onChange={(e) =>
+                          setWhForm((p) => ({
+                            ...p,
+                            capacityUnit: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Description</label>
@@ -715,7 +1000,7 @@ export default function WarehouseInventory() {
                       <span className="capacity-text">
                         {Number(viewModal.wh.currentLoad || 0).toLocaleString()}{" "}
                         / {Number(viewModal.wh.capacity || 0).toLocaleString()}{" "}
-                        units used
+                        {viewModal.wh.capacityUnit} used
                       </span>
                       <span className={`capacity-percent ${capClass(p)}`}>
                         {p}%
@@ -913,24 +1198,47 @@ export default function WarehouseInventory() {
                 )}
                 <div className="form-group">
                   <label>Warehouse *</label>
-                  <select
-                    className="form-select"
-                    required
-                    value={receiveForm.warehouseId}
-                    onChange={(e) =>
-                      setReceiveForm((p) => ({
-                        ...p,
-                        warehouseId: e.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">Select warehouse</option>
-                    {warehouses.map((w) => (
-                      <option key={w._id} value={w._id}>
-                        {w.name} ({pct(w.currentLoad, w.capacity)}% full)
-                      </option>
-                    ))}
-                  </select>
+                  {receiveForm.warehouseId ? (
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        backgroundColor: "#374151",
+                        border: "1px solid #4b5563",
+                        borderRadius: "6px",
+                        color: "#e5e7eb",
+                      }}
+                    >
+                      {warehouses.find((w) => w._id === receiveForm.warehouseId)
+                        ?.name || "Unknown Warehouse"}{" "}
+                      (
+                      {pct(
+                        warehouses.find((w) => w._id === receiveForm.warehouseId)
+                          ?.currentLoad || 0,
+                        warehouses.find((w) => w._id === receiveForm.warehouseId)
+                          ?.capacity || 1,
+                      )}
+                      % full)
+                    </div>
+                  ) : (
+                    <select
+                      className="form-select"
+                      required
+                      value={receiveForm.warehouseId}
+                      onChange={(e) =>
+                        setReceiveForm((p) => ({
+                          ...p,
+                          warehouseId: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Select warehouse</option>
+                      {warehouses.map((w) => (
+                        <option key={w._id} value={w._id}>
+                          {w.name} ({pct(w.currentLoad, w.capacity)}% full)
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Equipment</label>

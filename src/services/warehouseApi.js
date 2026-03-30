@@ -1,5 +1,21 @@
-﻿// src/services/warehouseApi.js
+﻿﻿// src/services/warehouseApi.js
 import axiosClient from "./AxiosClient";
+
+const normalizeCapacityPayload = (capacity) => {
+  if (capacity && typeof capacity === "object") {
+    return {
+      total: Number(capacity.total) || 0,
+      used: Number(capacity.used) || 0,
+      unit: capacity.unit || "units",
+    };
+  }
+
+  if (capacity === undefined || capacity === null || capacity === "") {
+    return capacity;
+  }
+
+  return Number(capacity);
+};
 
 const warehouseApi = {
   // 1. Get all warehouses
@@ -25,7 +41,7 @@ const warehouseApi = {
   create(data) {
     return axiosClient.post("/admin/warehouses", {
       ...data,
-      capacity: Number(data.capacity),
+      capacity: normalizeCapacityPayload(data.capacity),
     });
   },
 
@@ -33,12 +49,7 @@ const warehouseApi = {
   update(id, data) {
     return axiosClient.put(`/admin/warehouses/${id}`, {
       ...data,
-      capacity:
-        data.capacity !== undefined &&
-        data.capacity !== null &&
-        data.capacity !== ""
-          ? Number(data.capacity)
-          : data.capacity,
+      capacity: normalizeCapacityPayload(data.capacity),
     });
   },
 

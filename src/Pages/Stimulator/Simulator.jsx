@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   FaUser,
   FaCheckCircle,
@@ -148,99 +148,190 @@ const getInstrumentData = (partName) => {
 
 export default function Simulator() {
   const [selectedPart, setSelectedPart] = useState(null);
+  const [randomData, setRandomData] = useState({});
 
+  // Utility functions for random data
+  const getRandomInt = (min, max) =>
+    Math.floor(Math.random() * (max - min + 1)) + min;
+  const getRandomFloat = (min, max, decimals = 1) => {
+    const val = Math.random() * (max - min) + min;
+    return val.toFixed(decimals);
+  };
+  const pickRandom = (arr) => arr[getRandomInt(0, arr.length - 1)];
+
+  // Generate random data for each part
+  const generateRandomData = (partName) => {
+    // Metrics
+    const controlMetrics = [
+      {
+        label: "Pressure",
+        value: getRandomInt(1800, 3500).toLocaleString(),
+        unit: "PSI",
+        color: "green",
+      },
+      {
+        label: "Flow Rate",
+        value: getRandomFloat(120, 180),
+        unit: "BPD",
+        color: "blue",
+      },
+      {
+        label: "Temperature",
+        value: getRandomInt(120, 180),
+        unit: "°F",
+        color: "orange",
+      },
+      {
+        label: "Depth",
+        value: getRandomInt(7000, 9000).toLocaleString(),
+        unit: "ft",
+        color: "purple",
+      },
+    ];
+
+    // Kit Output Modules
+    const moduleNames = [
+      "Downhole Sensor",
+      "Flow Meter",
+      "Temperature Probe",
+      "Pressure Valve",
+      "Pump Controller",
+    ];
+    const kitOutputModules = Array.from({ length: 3 }, (_, i) => {
+      const name = pickRandom(moduleNames);
+      const status = pickRandom(["active", "warning"]);
+      let value;
+      if (name.includes("Sensor") || name.includes("Valve")) {
+        value = `${getRandomInt(1800, 3500)} PSI`;
+      } else if (name.includes("Flow")) {
+        value = `${getRandomFloat(120, 180)} BPD`;
+      } else if (name.includes("Temperature")) {
+        value = `${getRandomInt(120, 180)}°F`;
+      } else {
+        value = getRandomInt(1, 100).toString();
+      }
+      return { id: i + 1, name, value, status };
+    });
+
+    // Engineers
+    const engineerNames = [
+      "John Smith",
+      "Sarah Chen",
+      "Mike Johnson",
+      "Emily Davis",
+      "Carlos Ruiz",
+      "Anna Petrova",
+    ];
+    const engineerRoles = [
+      "Lead Engineer",
+      "Field Supervisor",
+      "Field Operator",
+      "Technician",
+    ];
+    const engineersList = Array.from({ length: 3 }, (_, i) => ({
+      id: i + 1,
+      name: pickRandom(engineerNames),
+      role: pickRandom(engineerRoles),
+      status: pickRandom(["online", "offline"]),
+    }));
+
+    // System Health
+    const overall = getRandomInt(80, 100);
+    const systemHealthData = {
+      overall,
+      subsystems: [
+        { name: "Sensors", health: getRandomInt(90, 100) },
+        { name: "Communication", health: getRandomInt(85, 100) },
+        { name: "Power", health: getRandomInt(80, 100) },
+      ],
+    };
+
+    // Maintenance Alerts
+    const alertTypes = ["planned", "inspection", "warning"];
+    const alertTitles = [
+      "Routine Maintenance Scheduled",
+      "Quarterly Inspection",
+      "Sensor Calibration Due",
+      "Valve Replacement Needed",
+      "System Upgrade Scheduled",
+    ];
+    const maintenanceAlertsList = Array.from({ length: 3 }, (_, i) => ({
+      id: i + 1,
+      type: pickRandom(alertTypes),
+      title: pickRandom(alertTitles),
+      date: `Feb ${getRandomInt(10, 28)}, 2026`,
+    }));
+
+    // Oil Output
+    const oilOutputData = {
+      current: getRandomInt(700, 900).toString(),
+      currentUnit: "BPD",
+      today: getRandomInt(18000, 22000).toLocaleString(),
+      todayUnit: "Barrels",
+      thisWeek: getRandomInt(120000, 150000).toLocaleString(),
+      thisWeekUnit: "Barrels",
+      trend: `${pickRandom(["+", "-"])}${getRandomFloat(0.5, 3.5)}%`,
+    };
+
+    // Incident Log
+    const severities = ["high", "medium", "low"];
+    const incidentTypes = [
+      "Equipment Malfunction",
+      "Routine Alert",
+      "Safety Alert",
+      "Power Loss",
+      "Sensor Fault",
+    ];
+    const incidentStatuses = ["resolved", "pending"];
+    const incidentDescriptions = [
+      "Pressure sensor calibration drift detected",
+      "Scheduled maintenance reminder",
+      "Pressure exceeded threshold",
+      "Unexpected power cycle",
+      "Sensor reading out of range",
+    ];
+    const incidentLog = Array.from({ length: 3 }, (_, i) => ({
+      id: i + 1,
+      date: `Feb ${getRandomInt(10, 28)}, 2026`,
+      severity: pickRandom(severities),
+      type: pickRandom(incidentTypes),
+      description: pickRandom(incidentDescriptions),
+      status: pickRandom(incidentStatuses),
+    }));
+
+    return {
+      controlMetrics,
+      kitOutputModules,
+      engineersList,
+      systemHealthData,
+      maintenanceAlertsList,
+      oilOutputData,
+      incidentLog,
+    };
+  };
+
+  // On part click, set selected part and generate new random data
   const handlePartClick = useCallback((partName) => {
     setSelectedPart(partName);
+    setRandomData(generateRandomData(partName));
+  }, []);
+
+  // On initial mount, generate random data for default (null)
+  useEffect(() => {
+    setRandomData(generateRandomData(null));
   }, []);
 
   // Get instrument details based on selected part
   const instrumentDetails = getInstrumentData(selectedPart);
-
-  const controlMetrics = [
-    { label: "Pressure", value: "2,345", unit: "PSI", color: "green" },
-    { label: "Flow Rate", value: "145", unit: "BPD", color: "blue" },
-    { label: "Temperature", value: "156", unit: "°F", color: "orange" },
-    { label: "Depth", value: "8,240", unit: "ft", color: "purple" },
-  ];
-
-  const kitOutputModules = [
-    { id: 1, name: "Downhole Sensor", value: "2,350 PSI", status: "active" },
-    { id: 2, name: "Flow Meter", value: "147.2 BPD", status: "active" },
-    { id: 3, name: "Temperature Probe", value: "158°F", status: "warning" },
-  ];
-
-  const engineersList = [
-    { id: 1, name: "John Smith", role: "Lead Engineer", status: "online" },
-    { id: 2, name: "Sarah Chen", role: "Field Supervisor", status: "online" },
-    { id: 3, name: "Mike Johnson", role: "Field Operator", status: "offline" },
-  ];
-
-  const systemHealthData = {
-    overall: 94,
-    subsystems: [
-      { name: "Sensors", health: 98 },
-      { name: "Communication", health: 95 },
-      { name: "Power", health: 89 },
-    ],
-  };
-
-  const maintenanceAlertsList = [
-    {
-      id: 1,
-      type: "planned",
-      title: "Routine Maintenance Scheduled",
-      date: "Feb 15, 2026",
-    },
-    {
-      id: 2,
-      type: "inspection",
-      title: "Quarterly Inspection",
-      date: "Feb 20, 2026",
-    },
-    {
-      id: 3,
-      type: "warning",
-      title: "Sensor Calibration Due",
-      date: "Feb 10, 2026",
-    },
-  ];
-
-  const oilOutputData = {
-    current: "847",
-    currentUnit: "BPD",
-    today: "20,328",
-    todayUnit: "Barrels",
-    thisWeek: "142,296",
-    thisWeekUnit: "Barrels",
-    trend: "+2.3%",
-  };
-
-  const incidentLog = [
-    {
-      id: 1,
-      date: "Feb 20, 2026",
-      severity: "medium",
-      type: "Equipment Malfunction",
-      description: "Pressure sensor calibration drift detected",
-      status: "resolved",
-    },
-    {
-      id: 2,
-      date: "Feb 18, 2026",
-      severity: "low",
-      type: "Routine Alert",
-      description: "Scheduled maintenance reminder",
-      status: "pending",
-    },
-    {
-      id: 3,
-      date: "Feb 15, 2026",
-      severity: "high",
-      type: "Safety Alert",
-      description: "Pressure exceeded threshold",
-      status: "resolved",
-    },
-  ];
+  const {
+    controlMetrics = [],
+    kitOutputModules = [],
+    engineersList = [],
+    systemHealthData = { overall: 0, subsystems: [] },
+    maintenanceAlertsList = [],
+    oilOutputData = {},
+    incidentLog = [],
+  } = randomData;
 
   return (
     <div className="simulator-page">
@@ -277,39 +368,6 @@ export default function Simulator() {
 
         {/* ===== Right Sidebar ===== */}
         <div className="simulator-sidebar">
-          {/* Instrument Details */}
-          <div className="sim-panel">
-            <h3 className="sim-panel-title">Instrument Details</h3>
-            <div className="sim-detail-grid">
-              <div className="sim-detail-item">
-                <label>Name</label>
-                <span>{instrumentDetails.name}</span>
-              </div>
-              <div className="sim-detail-item">
-                <label>Type</label>
-                <span>{instrumentDetails.type}</span>
-              </div>
-              <div className="sim-detail-item">
-                <label>Serial Number</label>
-                <span>{instrumentDetails.serialNumber}</span>
-              </div>
-              <div className="sim-detail-item">
-                <label>Status</label>
-                <span
-                  className={`badge-${instrumentDetails.status.toLowerCase()}`}
-                >
-                  {instrumentDetails.status}
-                </span>
-              </div>
-              {instrumentDetails.description && (
-                <div className="sim-detail-item sim-detail-full">
-                  <label>Description</label>
-                  <span>{instrumentDetails.description}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Control Metrics */}
           <div className="sim-panel">
             <h3 className="sim-panel-title">Equipment Control Panel</h3>
